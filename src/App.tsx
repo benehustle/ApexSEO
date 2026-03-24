@@ -15,6 +15,7 @@ import { HelpCenter } from './pages/HelpCenter';
 import { EmbeddedSignup } from './pages/EmbeddedSignup';
 import { Terms } from './pages/Terms';
 import { Privacy } from './pages/Privacy';
+import { ShoplineAuthCallback } from './pages/ShoplineAuthCallback';
 
 import { DashboardLayout } from './components/layout/DashboardLayout';
 
@@ -60,6 +61,7 @@ function App() {
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/embed/signup" element={<EmbeddedSignup />} />
+                <Route path="/auth/callback" element={<ShoplineAuthCallback />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
                 

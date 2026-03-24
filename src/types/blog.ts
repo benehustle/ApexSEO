@@ -9,6 +9,7 @@ export interface Blog {
   keyword: string;
   relatedKeywords: string[];
   featuredImageUrl: string;
+  featuredImageAltText?: string; // Auto-generated alt text for featured image
   internalLinks: Array<{ url: string; anchorText: string }>;
   externalLinks: Array<{ url: string; anchorText: string; type: 'youtube' }>;
   wordCount: number;
@@ -45,4 +46,22 @@ export interface Blog {
     retryCount: number;
     lastErrorAt: Date;
   };
+  // SEO Metadata
+  seoSchemas?: string[]; // JSON-LD schemas (BlogPosting, ImageObject, Organization)
+  openGraphTags?: Record<string, string>; // OG meta tags
+  twitterCardTags?: Record<string, string>; // Twitter Card meta tags
+  canonicalUrl?: string; // Canonical URL for the post
+  headingHierarchyValid?: boolean; // Validated H1/H2/H3 structure
+
+  // SEO Content Optimization
+  slug?: string; // URL-friendly slug, optimized for keyword
+  author?: string; // Author/byline name
+  contentReadabilityScore?: number; // Flesch-Kincaid score (0-100)
+  keywordDensity?: {
+    primary: number; // Primary keyword frequency %
+    secondary: Record<string, number>; // Secondary keyword frequency %
+  };
+  metaDescriptionLength?: number; // Track actual length for validation
+  internalLinksValidated?: boolean; // All internal links verified
+  featuredSnippetOptimized?: boolean; // Content optimized for featured snippets
 }

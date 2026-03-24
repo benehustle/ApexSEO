@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { doc, updateDoc, getDoc, deleteField } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
 import { useAgencyContext } from '../contexts/AgencyContext';
 import { useToast } from '../components/Toast';

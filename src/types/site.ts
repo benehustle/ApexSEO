@@ -16,9 +16,12 @@ export interface Site {
   userId: string;
   name: string;
   url: string;
+  platform?: 'wordpress' | 'shopline';
   wordpressApiUrl: string;
   wordpressUsername: string;
   wordpressAppPassword: string;
+  shoplineHandle?: string;
+  shoplineAccessToken?: string;
   industry: string;
   targetAudience: string;
   brandVoice: string;

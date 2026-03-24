@@ -6916,9 +6916,12 @@ export const createSiteCallable = region.runWith({
   const {
     name,
     url,
+    platform,
     wordpressApiUrl,
     wordpressUsername,
     wordpressAppPassword,
+    shoplineHandle,
+    shoplineAccessToken,
     industry,
     targetAudience,
     brandVoice,
@@ -7016,6 +7019,7 @@ export const createSiteCallable = region.runWith({
     const siteData: any = {
       name: name.trim(),
       url: url.trim(),
+      platform: platform === "shopline" ? "shopline" : "wordpress",
       agencyId, // PRIMARY ownership field
       ownerId: userId, // Keep for audit logs
       userId, // Legacy field for backward compatibility
@@ -7047,6 +7051,17 @@ export const createSiteCallable = region.runWith({
       siteData.wordpressAppPassword = wordpressAppPassword.trim();
       // If credentials are provided, set status to 'connected'
       if (wordpressApiUrl && wordpressUsername) {
+        siteData.status = "connected";
+      }
+    }
+
+    // Add optional Shopline credentials
+    if (shoplineHandle) {
+      siteData.shoplineHandle = shoplineHandle.trim();
+    }
+    if (shoplineAccessToken) {
+      siteData.shoplineAccessToken = shoplineAccessToken.trim();
+      if (shoplineHandle) {
         siteData.status = "connected";
       }
     }
@@ -7868,6 +7883,7 @@ export {contentWorker} from "./queue/worker";
 
 // Export Site Management functions
 export {verifyWordpressConnectionCallable} from "./sites";
+export {generateShoplineAuthUrlCallable, exchangeShoplineCodeCallable} from "./shopline";
 
 // Export Mailer functions
 export {sendEmail, verifyEmailConfig} from "./mailer";

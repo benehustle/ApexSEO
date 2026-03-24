@@ -101,7 +101,13 @@ export class WordPressService {
     username: string,
     appPassword: string,
     imageBlob: Blob,
-    filename: string
+    filename: string,
+    metadata?: {
+      altText?: string;
+      title?: string;
+      description?: string;
+      caption?: string;
+    }
   ) {
     const normalizedUrl = this.normalizeApiUrl(apiUrl);
     const auth = btoa(`${username}:${appPassword}`);
@@ -122,7 +128,59 @@ export class WordPressService {
     }
 
     const data = await response.json();
-    return { id: data.id, url: data.source_url };
+    const imageId = data.id;
+
+    // If metadata is provided, update the image with alt text and other fields
+    if (metadata) {
+      await this.updateImageMetadata(apiUrl, username, appPassword, imageId, metadata);
+    }
+
+    return { id: imageId, url: data.source_url };
+  }
+
+  /**
+   * Update WordPress media metadata (alt text, title, description, caption)
+   */
+  async updateImageMetadata(
+    apiUrl: string,
+    username: string,
+    appPassword: string,
+    mediaId: number,
+    metadata: {
+      altText?: string;
+      title?: string;
+      description?: string;
+      caption?: string;
+    }
+  ): Promise<void> {
+    const updateData: any = {};
+
+    if (metadata.altText) {
+      updateData.alt_text = metadata.altText;
+    }
+    if (metadata.title) {
+      updateData.title = metadata.title;
+    }
+    if (metadata.description) {
+      updateData.description = metadata.description;
+    }
+    if (metadata.caption) {
+      updateData.caption = metadata.caption;
+    }
+
+    try {
+      await this.makeRequest(
+        apiUrl,
+        username,
+        appPassword,
+        `/wp/v2/media/${mediaId}`,
+        'POST',
+        updateData
+      );
+    } catch (error) {
+      console.error('Failed to update image metadata:', error);
+      // Don't throw - metadata update failure shouldn't block publishing
+    }
   }
 
   /**
@@ -137,6 +195,8 @@ export class WordPressService {
       content: string;
       excerpt: string;
       featuredMediaId?: number;
+      slug?: string;
+      author?: string;
     }
   ) {
     const data = await this.makeRequest(apiUrl, username, appPassword, '/wp/v2/posts', 'POST', {
@@ -144,10 +204,72 @@ export class WordPressService {
       content: postData.content,
       excerpt: postData.excerpt,
       status: 'draft',
-      featured_media: postData.featuredMediaId
+      featured_media: postData.featuredMediaId,
+      slug: postData.slug, // URL-friendly slug
+      // author ID would need to be looked up from username if provided
     });
 
     return { id: data.id, link: data.link };
+  }
+
+  /**
+   * Update post SEO metadata (meta description, schemas, OG tags, Twitter cards)
+   */
+  async updatePostSeoMetadata(
+    apiUrl: string,
+    username: string,
+    appPassword: string,
+    postId: number,
+    seoData: {
+      metaDescription?: string;
+      schemas?: string[]; // JSON-LD schemas
+      openGraphTags?: Record<string, string>;
+      twitterCardTags?: Record<string, string>;
+      canonical?: string;
+      imageAltText?: string;
+    }
+  ): Promise<void> {
+    try {
+      const metaFields: any = {};
+
+      if (seoData.metaDescription) {
+        metaFields._yoast_wpseo_metadesc = seoData.metaDescription;
+      }
+
+      // Store schemas and social tags as meta fields
+      if (seoData.schemas && seoData.schemas.length > 0) {
+        metaFields._apex_seo_schemas = JSON.stringify(seoData.schemas);
+      }
+
+      if (seoData.openGraphTags) {
+        metaFields._apex_seo_og_tags = JSON.stringify(seoData.openGraphTags);
+      }
+
+      if (seoData.twitterCardTags) {
+        metaFields._apex_seo_twitter_tags = JSON.stringify(seoData.twitterCardTags);
+      }
+
+      if (seoData.canonical) {
+        metaFields._yoast_wpseo_canonical = seoData.canonical;
+      }
+
+      if (seoData.imageAltText) {
+        metaFields._apex_seo_image_alt = seoData.imageAltText;
+      }
+
+      // Update post with meta fields
+      await this.makeRequest(
+        apiUrl,
+        username,
+        appPassword,
+        `/wp/v2/posts/${postId}`,
+        'POST',
+        { meta: metaFields }
+      );
+    } catch (error) {
+      console.error('Failed to update post SEO metadata:', error);
+      // Don't throw - SEO metadata update failure shouldn't block publishing
+    }
   }
 
   /**

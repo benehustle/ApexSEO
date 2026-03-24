@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { wordpressService } from '../services/wordpress.service';
 import { useAuth } from '../hooks/useAuth';
@@ -7,8 +7,21 @@ import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
 
+const WordPressLogo: React.FC<{ className?: string }> = ({ className = 'w-8 h-8' }) => (
+  <div className={`${className} rounded-full bg-[#21759B] text-white flex items-center justify-center font-bold`}>
+    W
+  </div>
+);
+
+const ShoplineLogo: React.FC<{ className?: string }> = ({ className = 'w-8 h-8' }) => (
+  <div className={`${className} rounded-lg bg-[#00BF63] text-white flex items-center justify-center font-bold`}>
+    S
+  </div>
+);
+
 export const SiteOnboarding: React.FC = () => {
   const [step, setStep] = useState(1);
+  const totalSteps = 6;
   const [loading, setLoading] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const { user } = useAuth();
@@ -16,11 +29,14 @@ export const SiteOnboarding: React.FC = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
+    platform: 'wordpress' as 'wordpress' | 'shopline',
     name: '',
     url: '',
     wordpressApiUrl: '',
     wordpressUsername: '',
     wordpressAppPassword: '',
+    shoplineHandle: '',
+    shoplineAccessToken: '',
     industry: '',
     targetAudience: '',
     brandVoice: '',
@@ -32,7 +48,33 @@ export const SiteOnboarding: React.FC = () => {
     blogsPerWeek: 3
   });
 
+  useEffect(() => {
+    const raw = sessionStorage.getItem('shopline_oauth_result');
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw) as { handle?: string; accessToken?: string };
+      if (parsed?.handle && parsed?.accessToken) {
+        setFormData((prev) => ({
+          ...prev,
+          platform: 'shopline',
+          shoplineHandle: parsed.handle!,
+          shoplineAccessToken: parsed.accessToken!,
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to parse shopline_oauth_result:', error);
+    } finally {
+      sessionStorage.removeItem('shopline_oauth_result');
+    }
+  }, []);
+
   const handleTestConnection = async () => {
+    if (formData.platform !== 'wordpress') {
+      alert('Connection testing is only available for WordPress right now.');
+      return;
+    }
+
     setTestingConnection(true);
     try {
       const isConnected = await wordpressService.testConnection(
@@ -69,16 +111,27 @@ export const SiteOnboarding: React.FC = () => {
       if (agency.billingType === 'internal') {
         // Internal billing: Create site immediately
         const createSite = httpsCallable(functions, 'createSiteCallable');
-        const result = await createSite({
+        const sitePayload: Record<string, any> = {
           name: formData.name,
           url: formData.url,
-          wordpressUrl: formData.wordpressApiUrl,
-          wordpressUsername: formData.wordpressUsername,
-          wordpressAppPassword: formData.wordpressAppPassword,
+          platform: formData.platform,
           industry: formData.industry,
           targetAudience: formData.targetAudience,
           brandVoice: formData.brandVoice,
           tonePreferences: formData.tonePreferences,
+        };
+
+        if (formData.platform === 'wordpress') {
+          sitePayload.wordpressApiUrl = formData.wordpressApiUrl;
+          sitePayload.wordpressUsername = formData.wordpressUsername;
+          sitePayload.wordpressAppPassword = formData.wordpressAppPassword;
+        } else {
+          sitePayload.shoplineHandle = formData.shoplineHandle;
+          sitePayload.shoplineAccessToken = formData.shoplineAccessToken;
+        }
+
+        const result = await createSite({
+          ...sitePayload,
         });
         const data = result.data as { siteId: string };
         navigate(`/sites/${data.siteId}`);
@@ -123,16 +176,27 @@ export const SiteOnboarding: React.FC = () => {
 
           // Then create the site
           const createSite = httpsCallable(functions, 'createSiteCallable');
-          const result = await createSite({
+          const sitePayload: Record<string, any> = {
             name: formData.name,
             url: formData.url,
-            wordpressUrl: formData.wordpressApiUrl,
-            wordpressUsername: formData.wordpressUsername,
-            wordpressAppPassword: formData.wordpressAppPassword,
+            platform: formData.platform,
             industry: formData.industry,
             targetAudience: formData.targetAudience,
             brandVoice: formData.brandVoice,
             tonePreferences: formData.tonePreferences,
+          };
+
+          if (formData.platform === 'wordpress') {
+            sitePayload.wordpressApiUrl = formData.wordpressApiUrl;
+            sitePayload.wordpressUsername = formData.wordpressUsername;
+            sitePayload.wordpressAppPassword = formData.wordpressAppPassword;
+          } else {
+            sitePayload.shoplineHandle = formData.shoplineHandle;
+            sitePayload.shoplineAccessToken = formData.shoplineAccessToken;
+          }
+
+          const result = await createSite({
+            ...sitePayload,
           });
           const data = result.data as { siteId: string };
           navigate(`/sites/${data.siteId}`);
@@ -146,9 +210,79 @@ export const SiteOnboarding: React.FC = () => {
     }
   };
 
+  const canProceedToNext = () => {
+    if (step === 1) return !!formData.platform;
+    if (step === 2) return !!formData.name.trim() && !!formData.url.trim();
+    if (step === 3) {
+      if (formData.platform === 'wordpress') {
+        return (
+          !!formData.wordpressApiUrl.trim() &&
+          !!formData.wordpressUsername.trim() &&
+          !!formData.wordpressAppPassword.trim()
+        );
+      }
+      return !!formData.shoplineHandle.trim() && !!formData.shoplineAccessToken.trim();
+    }
+    if (step === 4) {
+      return (
+        !!formData.industry.trim() &&
+        !!formData.targetAudience.trim() &&
+        !!formData.brandVoice.trim()
+      );
+    }
+    if (step === 5) return !!formData.contentGoals.trim();
+    return true;
+  };
+
   const renderStep = () => {
     switch (step) {
       case 1:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold">Platform</h2>
+            <p className="text-sm text-slate-400">
+              Select where this site will publish content.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, platform: 'wordpress' })}
+                className={`p-4 rounded-lg border text-left transition-colors ${
+                  formData.platform === 'wordpress'
+                    ? 'border-blue-500 bg-blue-500/10'
+                    : 'border-slate-600 bg-slate-800 hover:border-slate-500'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <WordPressLogo />
+                  <div className="font-semibold">WordPress</div>
+                </div>
+                <div className="text-xs text-slate-400 mt-1">
+                  Connect with URL, username and application password
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, platform: 'shopline' })}
+                className={`p-4 rounded-lg border text-left transition-colors ${
+                  formData.platform === 'shopline'
+                    ? 'border-blue-500 bg-blue-500/10'
+                    : 'border-slate-600 bg-slate-800 hover:border-slate-500'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <ShoplineLogo />
+                  <div className="font-semibold">Shopline</div>
+                </div>
+                <div className="text-xs text-slate-400 mt-1">
+                  Connect with your Shopline store handle and access token
+                </div>
+              </button>
+            </div>
+          </div>
+        );
+
+      case 2:
         return (
           <div className="space-y-4">
             <h2 className="text-2xl font-bold">Basic Information</h2>
@@ -177,53 +311,118 @@ export const SiteOnboarding: React.FC = () => {
           </div>
         );
 
-      case 2:
+      case 3:
         return (
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold">WordPress Connection</h2>
-            <div>
-              <label className="block text-sm font-medium mb-2">WordPress API URL</label>
-              <input
-                type="url"
-                value={formData.wordpressApiUrl}
-                onChange={(e) => setFormData({ ...formData, wordpressApiUrl: e.target.value })}
-                className="input-field"
-                placeholder="https://myblog.com/wp-json"
-                required
-              />
+            <div className="flex items-center gap-3">
+              {formData.platform === 'wordpress' ? <WordPressLogo /> : <ShoplineLogo />}
+              <h2 className="text-2xl font-bold">
+                {formData.platform === 'wordpress' ? 'WordPress Connection' : 'Shopline Connection'}
+              </h2>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">WordPress Username</label>
-              <input
-                type="text"
-                value={formData.wordpressUsername}
-                onChange={(e) => setFormData({ ...formData, wordpressUsername: e.target.value })}
-                className="input-field"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Application Password</label>
-              <input
-                type="password"
-                value={formData.wordpressAppPassword}
-                onChange={(e) => setFormData({ ...formData, wordpressAppPassword: e.target.value })}
-                className="input-field"
-                required
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleTestConnection}
-              disabled={testingConnection}
-              className="btn-secondary"
-            >
-              {testingConnection ? 'Testing...' : 'Test Connection'}
-            </button>
+            {formData.platform === 'wordpress' ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-2">WordPress API URL</label>
+                  <input
+                    type="url"
+                    value={formData.wordpressApiUrl}
+                    onChange={(e) => setFormData({ ...formData, wordpressApiUrl: e.target.value })}
+                    className="input-field"
+                    placeholder="https://myblog.com/wp-json"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">WordPress Username</label>
+                  <input
+                    type="text"
+                    value={formData.wordpressUsername}
+                    onChange={(e) => setFormData({ ...formData, wordpressUsername: e.target.value })}
+                    className="input-field"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Application Password</label>
+                  <input
+                    type="password"
+                    value={formData.wordpressAppPassword}
+                    onChange={(e) => setFormData({ ...formData, wordpressAppPassword: e.target.value })}
+                    className="input-field"
+                    required
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleTestConnection}
+                  disabled={testingConnection}
+                  className="btn-secondary"
+                >
+                  {testingConnection ? 'Testing...' : 'Test Connection'}
+                </button>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Store Handle</label>
+                  <input
+                    type="text"
+                    value={formData.shoplineHandle}
+                    onChange={(e) => setFormData({ ...formData, shoplineHandle: e.target.value })}
+                    className="input-field"
+                    placeholder="mystore"
+                    required
+                  />
+                  <p className="text-xs text-slate-400 mt-1">From your store URL, e.g. mystore.myshopline.com</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Access Token</label>
+                  <input
+                    type="password"
+                    value={formData.shoplineAccessToken}
+                    onChange={(e) => setFormData({ ...formData, shoplineAccessToken: e.target.value })}
+                    className="input-field"
+                    placeholder="Shopline access token"
+                    required
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!formData.shoplineHandle.trim()) {
+                      alert('Enter your Shopline store handle first.');
+                      return;
+                    }
+                    try {
+                      const getAuthUrl = httpsCallable(functions, 'generateShoplineAuthUrlCallable');
+                      const result = await getAuthUrl({
+                        handle: formData.shoplineHandle.trim(),
+                        returnTo: '/onboarding',
+                      });
+                      const data = result.data as { authUrl: string };
+                      if (!data?.authUrl) {
+                        throw new Error('Missing Shopline authorization URL.');
+                      }
+                      window.location.href = data.authUrl;
+                    } catch (error: any) {
+                      console.error('Failed to start Shopline OAuth:', error);
+                      alert(error.message || 'Failed to start Shopline OAuth flow.');
+                    }
+                  }}
+                  className="btn-secondary"
+                >
+                  Connect with Shopline OAuth
+                </button>
+                <p className="text-xs text-slate-400">
+                  Prefer manual setup? Paste a valid token above instead.
+                </p>
+              </>
+            )}
           </div>
         );
 
-      case 3:
+      case 4:
         return (
           <div className="space-y-4">
             <h2 className="text-2xl font-bold">Brand Identity</h2>
@@ -263,7 +462,7 @@ export const SiteOnboarding: React.FC = () => {
           </div>
         );
 
-      case 4:
+      case 5:
         return (
           <div className="space-y-4">
             <h2 className="text-2xl font-bold">Content Strategy</h2>
@@ -290,7 +489,7 @@ export const SiteOnboarding: React.FC = () => {
           </div>
         );
 
-      case 5:
+      case 6:
         return (
           <div className="space-y-4">
             <h2 className="text-2xl font-bold">Publishing Settings</h2>
@@ -332,15 +531,15 @@ export const SiteOnboarding: React.FC = () => {
         <div className="mb-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-xl font-bold text-white">Site Setup</h1>
-            <p className="text-sm font-medium text-slate-400">Step {step} of 5</p>
+            <p className="text-sm font-medium text-slate-400">Step {step} of {totalSteps}</p>
           </div>
           <div className="h-2 bg-slate-700 rounded-full overflow-hidden flex">
-            {[1, 2, 3, 4, 5].map((s) => (
+            {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
               <div
                 key={s}
                 className={`flex-1 transition-all duration-500 ease-out ${
                   s <= step ? 'bg-primary-600' : 'bg-transparent'
-                } ${s !== 5 ? 'border-r border-white/20' : ''}`}
+                } ${s !== totalSteps ? 'border-r border-white/20' : ''}`}
               />
             ))}
           </div>
@@ -358,10 +557,11 @@ export const SiteOnboarding: React.FC = () => {
             <span>Back</span>
           </button>
 
-          {step < 5 ? (
+          {step < totalSteps ? (
             <button
-              onClick={() => setStep(step + 1)}
-              className="btn-primary flex items-center space-x-2"
+              onClick={() => setStep(Math.min(totalSteps, step + 1))}
+              disabled={!canProceedToNext()}
+              className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span>Next Step</span>
               <ChevronRight className="w-4 h-4" />

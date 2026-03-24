@@ -23,30 +23,44 @@ HUMANIZATION RULES (CRITICAL):
 9. Include specific, concrete examples rather than generic statements
 10. Show personality - be enthusiastic, curious, or thoughtful where appropriate
 
+HEADING STRUCTURE & SEO (CRITICAL):
+- The article title should be wrapped in <h1> tags in the content
+- ONLY use one <h1> tag (the title) - no other H1 tags allowed
+- Use <h2> for main section headings
+- Use <h3> for subsection headings under H2s
+- Never skip heading levels (e.g., don't go H2 -> H4, always H2 -> H3 -> H4)
+- Include the primary keyword naturally in the H1 and at least 2 H2 subheadings
+- Include semantic/related keywords naturally in other headings
+
 SEO BEST PRACTICES:
 - Include keyword naturally in title, first paragraph, and 2-3 subheadings
-- Use H2 and H3 tags for structure
-- Write compelling meta description (155 characters)
-- Include related keywords naturally
-- Optimize for featured snippets with clear answers
+- Use H2 and H3 tags for structure (see Heading Structure rules above)
+- Write compelling meta description (155 characters exactly)
+- Include related keywords naturally throughout
+- Optimize for featured snippets with clear, concise answers
+- Use lists and tables where appropriate for featured snippet optimization
 
 STRUCTURE:
-1. Engaging title (under 60 characters, includes keyword)
-2. Meta description (exactly 155 characters)
-3. Hook introduction (problem + empathy + solution preview)
-4. Body with H2/H3 subheadings
-5. Practical examples and actionable insights
-6. Conclusion with clear call-to-action
+1. <h1>Engaging title (under 60 characters, includes keyword)</h1>
+2. Hook introduction (problem + empathy + solution preview)
+3. Body with <h2> and <h3> subheadings following the hierarchy rules
+4. Practical examples and actionable insights
+5. <h2>Conclusion</h2> with clear call-to-action
+6. Meta description (exactly 155 characters)
 
 OUTPUT FORMAT: JSON
 {
   "title": "...",
   "metaDescription": "...",
-  "content": "... (HTML formatted - MUST contain full article text, minimum word count required)",
+  "content": "... (HTML formatted starting with <h1>{title}</h1>, MUST contain full article text, minimum word count required)",
   "excerpt": "..."
 }
 
-CRITICAL: The "content" field MUST contain the complete, full article text in HTML format. It cannot be empty, cannot be a summary, and must meet the minimum word count requirement.`;
+CRITICAL:
+- The "content" field MUST contain the complete, full article text in HTML format with proper heading hierarchy
+- MUST start with <h1>{title}</h1>
+- It cannot be empty, cannot be a summary, and must meet the minimum word count requirement
+- Validate heading hierarchy: only one H1, proper H2->H3 progression, no skipped levels`;
 
 const DEFAULT_BLOG_USER_PROMPT_TEMPLATE = `Create a {wordCount}-word blog post about "{keyword}".
 
@@ -61,23 +75,74 @@ EXTERNAL LINKS TO REFERENCE:
 CRITICAL REQUIREMENTS:
 - You MUST write the FULL article content in the "content" field
 - The "content" field must contain at least {wordCount} words of actual article text
+- MUST start with <h1>Blog Title Here</h1> - title wrapped in proper H1 tags
 - Use HTML formatting: <h2> for main sections, <h3> for subsections, <p> for paragraphs
+- Heading hierarchy MUST be correct: one H1, then H2s, then H3s under H2s, NO SKIPPED LEVELS
+- Meta description MUST be exactly 155 characters (count carefully)
 - Naturally include 2-4 internal links to the URLs provided (use <a href="...">anchor text</a>)
+  - Vary anchor text: use keyword-rich, brand, and descriptive anchors
+  - Link contextually to pillar/cluster posts
 - Link to 2-3 of the external sources where they support key claims or add credibility (use <a href="URL" target="_blank" rel="noopener noreferrer">anchor text</a>)
 - Make it engaging, informative, and SEO-optimized
 - Sound completely human-written, not AI-generated
 - Include specific examples and actionable advice
 - The "content" field must contain the COMPLETE FULL ARTICLE TEXT, not a summary, not empty, not placeholder text
+- Include keyword "{keyword}" naturally in the H1 title and at least 2-3 H2 subheadings
+- Use semantic keywords naturally throughout body and subheadings for topical authority
+
+FEATURED SNIPPET OPTIMIZATION:
+- Structure with lists, tables, definitions, or step-by-step guides where applicable
+- For "what is": Clear definition in <40 words
+- For "how to": Numbered list (1., 2., 3., etc.)
+- For comparisons: Use <table> tags
+- Each list item: 1-2 sentences max
+
+SEMANTIC KEYWORD INTEGRATION:
+- Weave semantic keywords naturally (not keyword stuffing)
+- Include >=1 semantic keyword in each H2 section
+- Build topical authority by covering related concepts
+
+HEADING STRUCTURE EXAMPLE:
+<h1>Main Title With Keyword Here</h1>
+<p>Introduction paragraph...</p>
+<h2>First Major Section with Related Keyword</h2>
+<p>Content here...</p>
+<h3>Subsection Under First Section</h3>
+<p>More content...</p>
+<h2>Second Major Section</h2>
+<p>Content here...</p>
+<h3>Subsection Under Second Section</h3>
+<p>Final content...</p>
 
 OUTPUT FORMAT - Return ONLY valid JSON with no additional text:
 {
   "title": "Full blog post title here",
-  "metaDescription": "SEO meta description (155 characters)",
-  "content": "FULL ARTICLE CONTENT HERE IN HTML FORMAT - THIS MUST BE THE COMPLETE ARTICLE WITH AT LEAST {wordCount} WORDS",
-  "excerpt": "Brief excerpt or summary"
+  "metaDescription": "SEO meta description (exactly 155 characters - count carefully)",
+  "slug": "seo-optimized-url-slug-with-primary-keyword",
+  "content": "FULL ARTICLE CONTENT HERE IN HTML FORMAT STARTING WITH <h1>Title</h1> - THIS MUST BE THE COMPLETE ARTICLE WITH AT LEAST {wordCount} WORDS, PROPER HEADING HIERARCHY, FEATURED SNIPPET OPTIMIZATION, AND NATURAL SEMANTIC KEYWORD INTEGRATION",
+  "excerpt": "Brief excerpt or summary (max 160 characters)"
 }
 
-IMPORTANT: The "content" field is MANDATORY and must contain the full article text. Do not leave it empty or use placeholder text.`;
+IMPORTANT: The "content" field is MANDATORY and must:
+1. Contain the full article text (minimum {wordCount} words)
+2. Start with <h1>Article Title</h1>
+3. Have proper heading hierarchy (no skipped levels, only one H1)
+4. Include featured snippet optimizations (lists, tables, definitions)
+5. Naturally integrate semantic keywords for topical authority
+6. Include varied internal links with different anchor text
+7. NOT be empty, summary, or placeholder text
+
+Meta Description REQUIREMENT:
+- Must be exactly 155 characters (not 154, not 156)
+- Include primary keyword
+- Make it compelling (appears in search results)
+- Avoid duplicate words
+
+Slug REQUIREMENT:
+- URL-friendly format (lowercase, hyphens between words)
+- Include primary keyword at the start
+- Max 200 characters
+- No special characters`;
 
 const DEFAULT_IMAGE_PROMPT_TEMPLATE = `Create a professional, high-quality featured image for a blog post.
 
@@ -106,6 +171,7 @@ Return ONLY valid JSON:
 {
   "title": "Engaging blog title (under 60 chars, includes keyword)",
   "metaDescription": "SEO meta description (exactly 155 characters)",
+  "slug": "url-friendly-slug-with-primary-keyword",
   "imagePrompt": "Detailed prompt for DALL-E image generation",
   "blogDescription": "Brief description of what the blog will cover (max 50 words)"
 }`;

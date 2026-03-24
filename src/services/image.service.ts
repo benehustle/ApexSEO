@@ -3,6 +3,7 @@ import { storage } from '../config/firebase';
 import { Blog } from '../types/blog';
 import { Site } from '../types/site';
 import { promptService } from './prompt.service';
+import { seoService } from './seo.service';
 
 export class ImageGenerationService {
   private apiKey: string;
@@ -165,7 +166,14 @@ Requirements:
     }
   }
 
-  async generateAndUpload(blog: Partial<Blog>, site: Site): Promise<string> {
+  /**
+   * Generate alt text from blog title and keyword
+   */
+  generateAltText(blogTitle: string, keyword: string): string {
+    return seoService.generateImageAltText(blogTitle, keyword);
+  }
+
+  async generateAndUpload(blog: Partial<Blog>, site: Site): Promise<{ url: string; altText: string }> {
     if (!blog.title || !blog.excerpt) {
       throw new Error('Blog title and excerpt are required for image generation');
     }
@@ -178,10 +186,19 @@ Requirements:
       siteId: site.id
     });
 
-    const path = `sites/${site.id}/blog-images/${Date.now()}.webp`;
+    // Generate alt text from title and keyword
+    const altText = this.generateAltText(blog.title, blog.keyword || blog.title);
+
+    // Use blog title slug for filename optimization
+    const slug = blog.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    const path = `sites/${site.id}/images/${slug}-${Date.now()}.webp`;
     const url = await this.uploadToStorage(imageBlob, path);
 
-    return url;
+    return { url, altText };
   }
 }
 
