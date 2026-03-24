@@ -1,0 +1,39 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isValidImageSize() {
+      return request.resource.size < 5 * 1024 * 1024; // 5MB
+    }
+    
+    function isValidImageType() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    match /sites/{siteId}/blog-images/{imageId} {
+      allow read: if true; // Public read for blog images
+      allow write: if isAuthenticated() && 
+                      isValidImageSize() && 
+                      isValidImageType();
+      allow delete: if isAuthenticated();
+    }
+    
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Agency logos: agency members can read/write their agency's logo
+    match /agencies/{agencyId}/{allPaths=**} {
+      allow read, write: if isAuthenticated() &&
+        firestore.exists(/databases/(default)/documents/agencies/$(agencyId)) &&
+        request.auth.uid in firestore.get(/databases/(default)/documents/agencies/$(agencyId)).data.members;
+    }
+  }
+}

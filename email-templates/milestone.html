@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f3f4f6; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #ffffff; padding: 30px 20px; border: 1px solid #e5e7eb; }
+    .milestone-box { background: #f0f9ff; border: 2px solid #3b82f6; padding: 25px; margin: 20px 0; border-radius: 8px; text-align: center; }
+    .milestone-number { font-size: 48px; font-weight: bold; color: #3b82f6; margin: 0; }
+    .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin-top: 20px; }
+    .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; background: #f9fafb; border-radius: 0 0 8px 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">🎯 Milestone Reached!</h1>
+    </div>
+    <div class="content">
+      <p>Congratulations! Your blog post has reached an exciting milestone.</p>
+      
+      <div class="milestone-box">
+        <div class="milestone-number">{{milestone}}</div>
+        <p style="margin: 10px 0 0 0; color: #1f2937; font-size: 18px;">{{blogTitle}}</p>
+        <p style="margin: 10px 0 0 0; color: #6b7280;">Total Views: {{totalViews}}</p>
+      </div>
+      
+      <p style="text-align: center; margin-top: 30px;">
+        Keep up the great work! Your content is resonating with your audience.
+      </p>
+      
+      <div style="text-align: center;">
+        <a href="{{analyticsUrl}}" class="button">View Analytics</a>
+      </div>
+    </div>
+    <div class="footer">
+      <p>© 2026 AI Blog Automation. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Redirects for Cloudflare Pages
+
+# Redirect root to index.html (if needed)
+/ /index.html 200
+
+# Handle 404s
+/* /index.html 404

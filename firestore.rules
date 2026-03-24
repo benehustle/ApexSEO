@@ -1,0 +1,301 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ============================================
+    // Helper Functions
+    // ============================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function getUserAgencyId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.agencyId;
+    }
+    
+    function isAppOwner() {
+      return isSignedIn() &&
+             (request.auth.token.email.matches('.*@spotonwebsites\\.com\\.au$') ||
+              request.auth.token.email.matches('.*@myapex\\.io$'));
+    }
+    
+    function isAgencyMember(agencyId) {
+      return isSignedIn() &&
+             agencyId != null &&
+             request.auth.uid in get(/databases/$(database)/documents/agencies/$(agencyId)).data.members;
+    }
+    
+    // ============================================
+    // Users Collection
+    // ============================================
+    match /users/{userId} {
+      // Users can read/write their own document, or App Owner can read any user
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAppOwner());
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // ============================================
+    // Agencies Collection
+    // ============================================
+    match /agencies/{agencyId} {
+      // Read: Only if user is a member of the agency OR App Owner
+      allow read: if isAgencyMember(agencyId) || isAppOwner();
+      
+      // Create: Only if user sets their own agencyId (via Cloud Functions) OR App Owner
+      allow create: if isSignedIn() &&
+                       (isAppOwner() ||
+                        (request.resource.data.agencyId == agencyId &&
+                         request.auth.uid in request.resource.data.members));
+      
+      // Update: Only if user is a member of the agency OR App Owner
+      allow update: if isAgencyMember(agencyId) || isAppOwner();
+      
+      // Delete: Only App Owner (agencies should not be deleted by users)
+      allow delete: if isAppOwner();
+    }
+    
+    // ============================================
+    // Sites Collection
+    // ============================================
+    match /sites/{siteId} {
+      // Read: Only if site belongs to user's agency OR App Owner
+      allow read: if isSignedIn() &&
+                     (isAppOwner() ||
+                      (resource.data.agencyId != null &&
+                       resource.data.agencyId == getUserAgencyId()));
+      
+      // Create: Only if user sets their own agencyId on the new site OR App Owner
+      allow create: if isSignedIn() &&
+                       (isAppOwner() ||
+                        (request.resource.data.agencyId == getUserAgencyId() &&
+                         request.resource.data.ownerId == request.auth.uid));
+      
+      // Update: Only if site belongs to user's agency OR App Owner
+      allow update: if isSignedIn() &&
+                       (isAppOwner() ||
+                        (resource.data.agencyId != null &&
+                         resource.data.agencyId == getUserAgencyId()));
+      
+      // Delete: Only if site belongs to user's agency OR App Owner
+      allow delete: if isSignedIn() &&
+                       (isAppOwner() ||
+                        (resource.data.agencyId != null &&
+                         resource.data.agencyId == getUserAgencyId()));
+      
+      // ============================================
+      // Sites Subcollections
+      // ============================================
+      
+      // Content Calendar subcollection
+      match /contentCalendar/{calendarId} {
+        // Read/Write: Only if parent site belongs to user's agency OR App Owner
+        allow read, write: if isSignedIn() &&
+                              (isAppOwner() ||
+                               (get(/databases/$(database)/documents/sites/$(siteId)).data.agencyId != null &&
+                                get(/databases/$(database)/documents/sites/$(siteId)).data.agencyId == getUserAgencyId()));
+      }
+      
+      // Targeted Keywords subcollection
+      match /targetedKeywords/{keywordId} {
+        // Read/Write: Only if parent site belongs to user's agency OR App Owner
+        allow read, write: if isSignedIn() &&
+                              (isAppOwner() ||
+                               (get(/databases/$(database)/documents/sites/$(siteId)).data.agencyId != null &&
+                                get(/databases/$(database)/documents/sites/$(siteId)).data.agencyId == getUserAgencyId()));
+      }
+      
+      // Posts subcollection (analytics)
+      match /posts/{postId} {
+        // Read/Write: Only if parent site belongs to user's agency OR App Owner
+        allow read, write: if isSignedIn() &&
+                              (isAppOwner() ||
+                               (get(/databases/$(database)/documents/sites/$(siteId)).data.agencyId != null &&
+                                get(/databases/$(database)/documents/sites/$(siteId)).data.agencyId == getUserAgencyId()));
+      }
+    }
+    
+    // ============================================
+    // Other Collections (Legacy/Support)
+    // ============================================
+    
+    match /blogs/{blogId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+                       request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && 
+                               resource.data.userId == request.auth.uid;
+    }
+    
+    match /keywords/{keywordId} {
+      allow read, write: if isSignedIn();
+    }
+    
+    match /pageViews/{viewId} {
+      allow read: if isSignedIn();
+      allow create: if true;
+    }
+    
+    match /timeOnPage/{timeId} {
+      allow read: if isSignedIn();
+      allow create: if true;
+    }
+    
+    match /scrollDepth/{scrollId} {
+      allow read: if isSignedIn();
+      allow create: if true;
+    }
+    
+    match /jobs/{jobId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if false;
+    }
+    
+    match /errorLogs/{logId} {
+      allow read: if isSignedIn();
+      allow create: if true;
+      allow update: if isSignedIn();
+    }
+    
+    match /activityLogs/{logId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn();
+    }
+    
+    match /apiLogs/{logId} {
+      allow read: if isSignedIn();
+      allow create: if true;
+    }
+    
+    match /rateLimits/{limitId} {
+      allow read: if isSignedIn() && 
+                     limitId.matches('^' + request.auth.uid + '_.*');
+      allow create, update: if isSignedIn() && 
+                     limitId.matches('^' + request.auth.uid + '_.*') &&
+                     request.resource.data.userId == request.auth.uid;
+    }
+    
+    match /apiUsage/{usageId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+    
+    match /monthlyUsage/{usageId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && 
+                       (resource.data.userId == request.auth.uid || 
+                        request.resource.data.userId == request.auth.uid);
+    }
+    
+    match /userPreferences/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+    
+    match /userSettings/{userId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+    
+    match /auditLogs/{logId} {
+      allow read: if isSignedIn();
+      allow create: if true;
+      allow update, delete: if false;
+    }
+    
+    match /feedback/{feedbackId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && 
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.rating >= 1 &&
+                       request.resource.data.rating <= 5 &&
+                       request.resource.data.siteId != null;
+      allow update, delete: if false;
+    }
+    
+    match /prompts/{siteId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if false;
+    }
+    
+    match /feedbackAnalysisQueue/{jobId} {
+      allow read, write: if false;
+    }
+    
+    // ============================================
+    // Support Tickets Collection
+    // ============================================
+    match /tickets/{ticketId} {
+      // Read: User can read their own tickets, or App Owner can read all
+      allow read: if isSignedIn() &&
+                     (isAppOwner() ||
+                      (resource.data.agencyId != null &&
+                       resource.data.agencyId == getUserAgencyId()));
+      
+      // Create: User can create tickets for their own agency
+      allow create: if isSignedIn() &&
+                       request.resource.data.agencyId == getUserAgencyId() &&
+                       request.resource.data.status == "open";
+      
+      // Update: User can update their own tickets, or App Owner can update any
+      allow update: if isSignedIn() &&
+                       (isAppOwner() ||
+                        (resource.data.agencyId != null &&
+                         resource.data.agencyId == getUserAgencyId()));
+      
+      // Delete: Only App Owner
+      allow delete: if isAppOwner();
+      
+      // Messages subcollection
+      match /messages/{messageId} {
+        // Read: Same as parent ticket
+        allow read: if isSignedIn() &&
+                       (isAppOwner() ||
+                        (get(/databases/$(database)/documents/tickets/$(ticketId)).data.agencyId != null &&
+                         get(/databases/$(database)/documents/tickets/$(ticketId)).data.agencyId == getUserAgencyId()));
+        
+        // Create: User can add messages to their own tickets, or App Owner
+        allow create: if isSignedIn() &&
+                         (isAppOwner() ||
+                          (get(/databases/$(database)/documents/tickets/$(ticketId)).data.agencyId != null &&
+                           get(/databases/$(database)/documents/tickets/$(ticketId)).data.agencyId == getUserAgencyId()));
+        
+        // Update/Delete: Only App Owner
+        allow update, delete: if isAppOwner();
+      }
+    }
+    
+    // ============================================
+    // Invitations Collection
+    // ============================================
+    match /invitations/{invitationId} {
+      // Read: User can read their own invitation by email, or agency members can read
+      allow read: if isSignedIn() && 
+                     ((request.auth.token.email != null &&
+                       request.auth.token.email.lower() == resource.data.email.lower()) ||
+                      (resource.data.agencyId != null &&
+                       getUserAgencyId() == resource.data.agencyId));
+      
+      // Create: Agency members can create invitations
+      allow create: if isSignedIn() && 
+                      request.resource.data.agencyId != null &&
+                      request.resource.data.agencyId == getUserAgencyId() &&
+                      request.resource.data.status == "pending";
+      
+      // Update/Delete: Only system (via Cloud Functions)
+      allow update, delete: if false;
+    }
+    
+    // ============================================
+    // Public Collections (Read-Only)
+    // ============================================
+    match /terms/{docId} {
+      allow read: if true; // Public read access
+      allow write: if false; // No write access
+    }
+    
+    match /privacy/{docId} {
+      allow read: if true; // Public read access
+      allow write: if false; // No write access
+    }
+  }
+}

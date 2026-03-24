@@ -1,0 +1,61 @@
+> eslint .
+
+
+/Users/benwake/Library/Mobile Documents/com~apple~CloudDocs/Apps/Apex SEO/functions/src/index.ts
+  282:1  error  Trailing spaces not allowed  no-trailing-spaces
+  290:1  error  Trailing spaces not allowed  no-trailing-spaces
+  293:1  error  Trailing spaces not allowed  no-trailing-spaces
+  298:1  error  Trailing spaces not allowed  no-trailing-spaces
+  311:1  error  Trailing spaces not allowed  no-trailing-spaces
+  318:1  error  Trailing spaces not allowed  no-trailing-spaces
+  337:1  error  Trailing spaces not allowed  no-trailing-spaces
+  345:1  error  Trailing spaces not allowed  no-trailing-spaces
+  349:1  error  Trailing spaces not allowed  no-trailing-spaces
+  354:1  error  Trailing spaces not allowed  no-trailing-spaces
+  362:1  error  Trailing spaces not allowed  no-trailing-spaces
+  366:1  error    366:1  error    366:1  error    366:1  error    366:1  error    ailing spaces not allowed  no-trailing-spa  366 378:1  error  Trailing spaces not allowed  no-trailing-spaces
+  397:1  error  Trailing spaces not allowed  no-trailing-spaces
+  405:1  error  Trailing spaces not allowed  no-trailing-spaces
+  409:1  error  Trailing spaces not allowed  no-trailing-spaces
+  414:1  error  Trailing spaces not allowed  no-trailing-spaces
+  422:1  error  Trailing spaces not allowed  no-trailing-spaces
+  426:1  error  Trailing spaces not allowed  no-trailing-spaces
+  432:1  error  Trailing spaces not allowed  no-trailing-spaces
+  438:1  error  Trailing spaces not allowed  no-trailing-spaces
+  454:1  error  Trailing spaces not allowed  no-trailing-spaces
+  464:1  error  Trailing spaces not allowed  no-trailing-spaces
+  473:1  error  Trailing spaces not allowed  no-trailing-spaces
+  480:1  error  Trailing spaces not allowed  no-trailing-spaces
+  489:1  error  Trailing spaces not allowed  no-trailing-spaces
+  499:1  error  Trailing spaces not allowed  no-trailing-spaces
+  518:1  error  Trailing spaces not allowed  no-trailing-spaces
+  523:1  error  Trailing spaces not allowed  no-trailing-spaces
+  525:1  error  Trailing spaces not allowed  no-trailing-spaces
+  542:1  error  Trailing spaces not allowed  no-trailing-spaces
+  622:1  error  Trailing spaces not allowed  no-trailing-spaces
+  625:1  error  Trailing spaces not allowed  no-trailing-spaces
+  630:1  error  Trailing spaces not allowed  no-trailing-spaces
+  632:1  error  Trailing spaces not allowed  no-trailing-spaces
+  634:1  error  Trailing spaces not allowed  no-trailing-spaces
+  637:1  error  Trailing spaces not allowed  no-trailing-spaces
+  643:1  error  Trailing spaces not allowed  no-trailing-spaces
+  653:1  error  Trailing spaces not allowed  no-trailing-spaces
+  722:1  error  Trailing spaces not allowed  no-trailing-spaces
+  724:1  error  Trailing spaces not allowed  no-trailing-spaces
+  727:1  error  Trailing spaces not allowed  no-trailing-spaces
+  729:1  error  Trailing spaces not allowed  no-trailing-spaces
+  733:1  error  Trailing spaces not allowed  no-trailing-spaces
+  738:1  error  Trailing spaces not allowed  no-trailing-spaces
+  743:1  error  Trailing spaces not allowed  no-trailing-spaces
+  751:1  error  Trailing spaces not allowed  no-trailing-spaces
+  753:1  error  Trailing spaces not allowed  no-trailing-spaces
+  759:1  error  Trailing spaces not allowed  no-trailing-spaces
+  772:1  error  Trailing spaces not allowed  no-trailing-spaces
+  783:1  error  Trailing spaces not allowed  no-trailing-spaces
+  793:1  error  Trailing spaces not allowed  no-trailing-spaces
+  796:1  error  Trailing spaces not allowed  no-trailing-spaces
+
+✖ 54 problems (54 errors, 0 warnings)
+  54 errors and 0 warnings potentially fixable with the `--fix` option.
+
+

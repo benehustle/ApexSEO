@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f3f4f6; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #f59e0b; color: white; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #ffffff; padding: 30px 20px; border: 1px solid #e5e7eb; }
+    .button { display: inline-block; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 10px 5px; }
+    .button-approve { background: #10b981; }
+    .button-reject { background: #ef4444; }
+    .button-edit { background: #3b82f6; }
+    .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; background: #f9fafb; border-radius: 0 0 8px 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">📝 Blog Awaiting Approval</h1>
+    </div>
+    <div class="content">
+      <p>You have <strong>{{count}}</strong> new blog post(s) ready for review on <strong>{{siteName}}</strong>.</p>
+      
+      <h2 style="color: #1f2937; margin-top: 30px;">{{blogTitle}}</h2>
+      
+      <div style="background: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Keyword:</strong> {{keyword}}</p>
+        <p style="margin: 5px 0;"><strong>Word Count:</strong> {{wordCount}}</p>
+        <p style="margin: 5px 0;"><strong>Scheduled for:</strong> {{scheduledDate}}</p>
+      </div>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="{{approveUrl}}" class="button button-approve">✓ Approve</a>
+        <a href="{{rejectUrl}}" class="button button-reject">✗ Reject</a>
+        <a href="{{editUrl}}" class="button button-edit">✎ Edit</a>
+      </div>
+      
+      <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px;">
+        Review this blog in your content calendar to approve, edit, or reject it before publishing.
+      </p>
+    </div>
+    <div class="footer">
+      <p>© 2026 AI Blog Automation. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>

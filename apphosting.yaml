@@ -1,0 +1,65 @@
+# Build configuration for Firebase App Hosting
+# See https://firebase.google.com/docs/app-hosting/configure#build-config
+buildConfig:
+  # Build command to compile the app
+  buildCommand: npm run build
+  # Output directory where build artifacts are placed
+  outputDirectory: dist
+
+# Settings for Backend (on Cloud Run).
+# See https://firebase.google.com/docs/app-hosting/configure#cloud-run
+runConfig:
+  minInstances: 0
+  # maxInstances: 100
+  # concurrency: 80
+  # cpu: 1
+  # memoryMiB: 512
+
+# Environment variables and secrets.
+# See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
+env:
+  # Firebase configuration (required at BUILD time for Vite)
+  # These values are embedded into the client bundle during build
+  # Replace these with your actual Firebase project values
+  - variable: VITE_FIREBASE_API_KEY
+    value: "AIzaSyA46gsdoa5b-qhuScjbguYiRD3AOfhR5RU"
+    availability:
+      - BUILD
+  
+  - variable: VITE_FIREBASE_AUTH_DOMAIN
+    value: "apex-seo-ffbd0.firebaseapp.com"
+    availability:
+      - BUILD
+  
+  - variable: VITE_FIREBASE_PROJECT_ID
+    value: "apex-seo-ffbd0"
+    availability:
+      - BUILD
+  
+  - variable: VITE_FIREBASE_STORAGE_BUCKET
+    value: "apex-seo-ffbd0.firebasestorage.app"
+    availability:
+      - BUILD
+  
+  - variable: VITE_FIREBASE_MESSAGING_SENDER_ID
+    value: "102140955156"
+    availability:
+      - BUILD
+  
+  - variable: VITE_FIREBASE_APP_ID
+    value: "1:102140955156:web:9d043ae29e9568c52f3501"
+    availability:
+      - BUILD
+  
+  - variable: VITE_FIREBASE_MEASUREMENT_ID
+    value: "G-485ZT8ZP5N"  # Optional, only if using Analytics
+    availability:
+      - BUILD
+
+  # Grant access to secrets in Cloud Secret Manager (alternative approach)
+  # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
+  # If you prefer to store sensitive values in Secret Manager:
+  # - variable: VITE_FIREBASE_API_KEY
+  #   secret: firebase-api-key
+  #   availability:
+  #     - BUILD

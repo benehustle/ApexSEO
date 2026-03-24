@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start Your Free Trial - Apex SEO</title>
+    <meta name="description" content="Start your 7-day free trial of Apex SEO. No credit card required.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                            950: '#1e1b4b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-white h-screen flex flex-col md:flex-row overflow-hidden">
+    
+    <!-- Left Side - Branding (Hidden on mobile) -->
+    <div class="hidden md:flex md:w-1/2 bg-slate-900 relative flex-col justify-between p-12 lg:p-16">
+        <div class="absolute inset-0 bg-primary-900/20"></div>
+        <div class="absolute top-0 right-0 w-full h-full bg-[url('https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')] bg-cover bg-center opacity-10 mix-blend-overlay"></div>
+        <div class="absolute -right-20 -top-20 w-96 h-96 bg-primary-600 rounded-full blur-[128px] opacity-30"></div>
+        
+        <div class="relative z-10">
+            <a href="index.html">
+                <img src="assets/apex-logo.png" alt="Apex SEO" class="h-10 brightness-0 invert">
+            </a>
+        </div>
+
+        <div class="relative z-10">
+            <blockquote class="text-2xl font-medium text-white mb-6">
+                "Apex SEO completely transformed how we manage content. We're publishing 10x more posts with higher rankings than ever before."
+            </blockquote>
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold">JD</div>
+                <div>
+                    <div class="text-white font-semibold">James D.</div>
+                    <div class="text-primary-200 text-sm">Marketing Director</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="relative z-10 text-sm text-slate-400">
+            &copy; 2026 Apex SEO. All rights reserved.
+        </div>
+    </div>
+
+    <!-- Right Side - Form -->
+    <div class="w-full md:w-1/2 flex flex-col h-full overflow-y-auto bg-white">
+        <!-- Mobile Header -->
+        <div class="md:hidden p-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-20">
+            <a href="index.html">
+                <img src="assets/apex-logo.png" alt="Apex SEO" class="h-8">
+            </a>
+            <a href="index.html" class="text-sm text-slate-500 hover:text-primary-600">Back to Home</a>
+        </div>
+
+        <div class="flex-1 flex flex-col justify-center px-6 py-12 lg:px-20 max-w-xl mx-auto w-full">
+            <div class="mb-10">
+                <h1 class="text-3xl font-bold text-slate-900 mb-2">Create your account</h1>
+                <p class="text-slate-600">
+                    Start your 7-day free trial. No credit card required.
+                </p>
+            </div>
+
+            <form id="signup-form" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Business Name</label>
+                    <input type="text" id="business-name" required 
+                        class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors text-slate-900 placeholder:text-slate-400"
+                        placeholder="Acme Inc."
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Work Email</label>
+                    <input type="email" id="email" required 
+                        class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors text-slate-900 placeholder:text-slate-400"
+                        placeholder="name@company.com"
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
+                    <input type="password" id="password" required minlength="6"
+                        class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors text-slate-900 placeholder:text-slate-400"
+                        placeholder="••••••••"
+                    >
+                    <p class="text-xs text-slate-500 mt-1">Must be at least 6 characters</p>
+                </div>
+
+                <div class="flex items-start gap-3">
+                    <input type="checkbox" id="accept-terms" required class="mt-1 w-4 h-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500">
+                    <label for="accept-terms" class="text-sm text-slate-600">
+                        I agree to the <a href="termsandconditions.html" target="_blank" class="text-primary-600 hover:text-primary-700 font-medium">Terms of Service</a> and <a href="privacy.html" target="_blank" class="text-primary-600 hover:text-primary-700 font-medium">Privacy Policy</a>.
+                    </label>
+                </div>
+
+                <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3.5 px-6 rounded-lg transition-all shadow-lg shadow-primary-500/25 hover:-translate-y-0.5">
+                    Start Free Trial
+                </button>
+            </form>
+
+            <div class="mt-8 text-center">
+                <p class="text-sm text-slate-600">
+                    Already have an account? 
+                    <a href="#" id="login-link" class="text-primary-600 hover:text-primary-700 font-semibold">Sign in</a>
+                </p>
+            </div>
+            
+            <div class="mt-8 pt-8 border-t border-slate-100">
+                <div class="flex items-center justify-center gap-6 grayscale opacity-60">
+                     <!-- Trust badges or logos could go here -->
+                     <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Trusted by 500+ Agencies</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Handle form submission - redirect to actual app signup
+        document.getElementById('signup-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const businessName = document.getElementById('business-name').value;
+            const email = document.getElementById('email').value;
+            
+            // Store in session storage to pass to app
+            sessionStorage.setItem('signup_prefill', JSON.stringify({
+                businessName: businessName,
+                email: email
+            }));
+            
+            // Redirect to actual app signup
+            window.location.href = 'https://apex-seo-ffbd0.web.app/embed/signup';
+        });
+
+        // Handle login link
+        document.getElementById('login-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = 'https://apex-seo-ffbd0.web.app/login';
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apex SEO - AI-Powered WordPress Automation Platform</title>
+    <meta name="description" content="Automate your WordPress SEO with AI-powered content generation, keyword research, and analytics tracking. Start your 7-day free trial today.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                            950: '#1e1b4b',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 1s ease-out',
+                        'fade-in-up': 'fadeInUp 1s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .hero-pattern {
+            background-color: #4f46e5;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%236366f1' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased">
+    <!-- Header -->
+    <header class="fixed w-full top-0 z-50 transition-all duration-300 bg-white/80 backdrop-blur-md border-b border-slate-200">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center group">
+                        <img src="assets/apex-logo.png" alt="Apex SEO" class="h-10 transition-transform duration-300 group-hover:scale-105">
+                    </a>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <!-- Features Dropdown -->
+                    <div class="relative group">
+                        <button class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors flex items-center gap-1 py-2">
+                            Features
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="absolute left-0 mt-0 w-64 bg-white border border-slate-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 z-50">
+                            <div class="p-2">
+                                <a href="topical-authority.html" class="block px-4 py-3 rounded-lg hover:bg-slate-50 text-sm">
+                                    <div class="font-semibold text-slate-900">Topical Authority</div>
+                                    <div class="text-xs text-slate-500 mt-1">Pillar & cluster strategy</div>
+                                </a>
+                                <a href="keyword-research.html" class="block px-4 py-3 rounded-lg hover:bg-slate-50 text-sm">
+                                    <div class="font-semibold text-slate-900">Keyword Research</div>
+                                    <div class="text-xs text-slate-500 mt-1">AI-powered discovery</div>
+                                </a>
+                                <a href="wordpress-integration.html" class="block px-4 py-3 rounded-lg hover:bg-slate-50 text-sm">
+                                    <div class="font-semibold text-slate-900">WordPress Integration</div>
+                                    <div class="text-xs text-slate-500 mt-1">1-click connection</div>
+                                </a>
+                                <a href="multisite-management.html" class="block px-4 py-3 rounded-lg hover:bg-slate-50 text-sm">
+                                    <div class="font-semibold text-slate-900">Multi-Site Management</div>
+                                    <div class="text-xs text-slate-500 mt-1">Scale your agency</div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="#pricing" class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors">Pricing</a>
+                    <a href="blog/index.html" class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors">Blog</a>
+                    <a href="#how-it-works" class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors">How It Works</a>
+                    <a href="contact.html" class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors">Contact</a>
+                    <a href="signup.html" class="bg-primary-600 text-white px-5 py-2.5 rounded-full hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/30 text-sm font-semibold hover:-translate-y-0.5">Start Free Trial</a>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-slate-700 hover:text-primary-600 p-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <!-- Mobile Menu -->
+            <div id="mobile-menu" class="hidden md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 shadow-xl p-4 space-y-4">
+                <div class="font-semibold text-slate-900 px-2 mb-2">Features</div>
+                <a href="topical-authority.html" class="block px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg">Topical Authority</a>
+                <a href="keyword-research.html" class="block px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg">Keyword Research</a>
+                <a href="wordpress-integration.html" class="block px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg">WordPress Integration</a>
+                <a href="multisite-management.html" class="block px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg">Multi-Site Management</a>
+                <div class="border-t border-slate-100 my-2"></div>
+                <a href="#pricing" class="block text-slate-600 px-2 font-medium">Pricing</a>
+                <a href="#how-it-works" class="block text-slate-600 px-2 font-medium">How It Works</a>
+                <a href="contact.html" class="block text-slate-600 px-2 font-medium">Contact</a>
+                <a href="signup.html" class="block bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors font-semibold text-center mt-4">Start Free Trial</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden hero-pattern">
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-slate-50/10"></div>
+        <!-- Decorative blobs -->
+        <div class="absolute top-20 left-10 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div class="absolute top-20 right-10 w-72 h-72 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="animate-fade-in-up">
+                <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full mb-8 shadow-lg">
+                    <span class="flex h-2 w-2 rounded-full bg-green-400"></span>
+                    <span class="text-sm font-medium text-white tracking-wide">New: AI Keyword Research 2.0</span>
+                </div>
+                
+                <h1 class="text-5xl md:text-7xl font-extrabold text-white tracking-tight mb-8 leading-tight">
+                    Dominate Search with<br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-white to-primary-200">AI Automation</span>
+                </h1>
+                
+                <p class="text-xl md:text-2xl text-primary-100 mb-10 max-w-3xl mx-auto font-light leading-relaxed">
+                    Scale your WordPress SEO effortlessly. Generate content, track rankings, and manage unlimited sites from one powerful dashboard.
+                </p>
+                
+                <div class="flex flex-col sm:flex-row gap-5 justify-center items-center">
+                    <a href="signup.html" class="w-full sm:w-auto bg-white text-primary-600 px-8 py-4 rounded-full hover:bg-slate-50 transition-all shadow-xl shadow-indigo-900/20 font-bold text-lg hover:-translate-y-1 flex items-center justify-center gap-2">
+                        Start 7-Day Free Trial
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                    </a>
+                    <a href="#how-it-works" class="w-full sm:w-auto px-8 py-4 rounded-full border border-white/30 text-white hover:bg-white/10 transition-all font-semibold text-lg backdrop-blur-sm">
+                        View Demo
+                    </a>
+                </div>
+                
+                <p class="text-primary-200 text-sm mt-8 flex items-center justify-center gap-6">
+                    <span class="flex items-center gap-2"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg> No Credit Card Required</span>
+                    <span class="flex items-center gap-2"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg> 1-Click WordPress Setup</span>
+                </p>
+            </div>
+        </div>
+        
+        <!-- Dashboard Preview Mockup -->
+        <div class="relative max-w-6xl mx-auto px-4 mt-20 animate-fade-in-up" style="animation-delay: 0.2s">
+            <div class="bg-slate-900 rounded-2xl p-2 shadow-2xl shadow-indigo-500/20 border border-slate-700/50">
+                <div class="bg-slate-800 rounded-xl overflow-hidden aspect-[16/9] relative group">
+                    <!-- This would be a screenshot, using a placeholder for now with a nice gradient -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
+                         <div class="text-center">
+                            <div class="w-24 h-24 bg-primary-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                                <svg class="w-12 h-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                            <p class="text-slate-400 font-medium">Dashboard Preview</p>
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-24 bg-slate-50 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-20">
+                <h2 class="text-base font-semibold text-primary-600 tracking-wide uppercase mb-2">Features</h2>
+                <h2 class="text-4xl md:text-5xl font-bold text-slate-900 mb-6">Everything you need to rank #1</h2>
+                <p class="text-xl text-slate-600 max-w-2xl mx-auto">Stop guessing and start ranking. Our AI-driven platform handles the heavy lifting.</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="glass-card bg-white p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group border border-slate-100">
+                    <div class="w-14 h-14 bg-primary-50 rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary-600 transition-colors">
+                        <svg class="w-7 h-7 text-primary-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">AI Content Generation</h3>
+                    <p class="text-slate-600 leading-relaxed">Create human-quality, SEO-optimized blog posts in minutes. Our AI understands your niche and brand voice perfectly.</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="glass-card bg-white p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group border border-slate-100">
+                    <div class="w-14 h-14 bg-primary-50 rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary-600 transition-colors">
+                        <svg class="w-7 h-7 text-primary-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Automated Keyword Research</h3>
+                    <p class="text-slate-600 leading-relaxed">Uncover low-competition, high-volume keywords automatically. We find the opportunities your competitors miss.</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="glass-card bg-white p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group border border-slate-100">
+                    <div class="w-14 h-14 bg-primary-50 rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary-600 transition-colors">
+                        <svg class="w-7 h-7 text-primary-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">AI Image Generation</h3>
+                    <p class="text-slate-600 leading-relaxed">Never pay for stock photos again. Generate unique, copyright-free featured images for every post instantly.</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="glass-card bg-white p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group border border-slate-100">
+                    <div class="w-14 h-14 bg-primary-50 rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary-600 transition-colors">
+                        <svg class="w-7 h-7 text-primary-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Smart Content Calendar</h3>
+                    <p class="text-slate-600 leading-relaxed">Visualize your strategy. Schedule months of content in advance and let our auto-publisher handle the rest.</p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="glass-card bg-white p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group border border-slate-100">
+                    <div class="w-14 h-14 bg-primary-50 rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary-600 transition-colors">
+                        <svg class="w-7 h-7 text-primary-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Deep Analytics</h3>
+                    <p class="text-slate-600 leading-relaxed">Track ROI down to the dollar. Monitor page views, time on page, and engagement metrics in real-time.</p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="glass-card bg-white p-8 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group border border-slate-100">
+                    <div class="w-14 h-14 bg-primary-50 rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary-600 transition-colors">
+                        <svg class="w-7 h-7 text-primary-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Multi-Site Management</h3>
+                    <p class="text-slate-600 leading-relaxed">Agency power at your fingertips. Manage unlimited WordPress sites from a single, unified dashboard.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="py-24 bg-white relative overflow-hidden">
+        <div class="absolute inset-0 bg-slate-50/50 -skew-y-3 transform origin-bottom-right"></div>
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-20">
+                <h2 class="text-base font-semibold text-primary-600 tracking-wide uppercase mb-2">Process</h2>
+                <h2 class="text-4xl md:text-5xl font-bold text-slate-900 mb-6">From Keyword to Ranked in 3 Steps</h2>
+                <p class="text-xl text-slate-600">Our streamlined workflow gets your content live faster.</p>
+            </div>
+            
+            <div class="relative grid md:grid-cols-3 gap-12">
+                <!-- Connector Line -->
+                <div class="hidden md:block absolute top-12 left-1/6 right-1/6 h-0.5 bg-gradient-to-r from-primary-200 via-primary-400 to-primary-200"></div>
+
+                <!-- Step 1 -->
+                <div class="relative text-center group">
+                    <div class="w-24 h-24 bg-white border-4 border-primary-100 rounded-full flex items-center justify-center text-3xl font-bold text-primary-600 mx-auto mb-6 shadow-xl relative z-10 group-hover:scale-110 transition-transform duration-300">1</div>
+                    <h3 class="text-2xl font-bold text-slate-900 mb-4">Connect</h3>
+                    <p class="text-slate-600 leading-relaxed">Securely connect your WordPress sites with our 1-click integration. No coding required.</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="relative text-center group">
+                    <div class="w-24 h-24 bg-white border-4 border-primary-100 rounded-full flex items-center justify-center text-3xl font-bold text-primary-600 mx-auto mb-6 shadow-xl relative z-10 group-hover:scale-110 transition-transform duration-300">2</div>
+                    <h3 class="text-2xl font-bold text-slate-900 mb-4">Generate</h3>
+                    <p class="text-slate-600 leading-relaxed">Enter a topic or let our AI find opportunities for you. Generate full posts with images in seconds.</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="relative text-center group">
+                    <div class="w-24 h-24 bg-white border-4 border-primary-100 rounded-full flex items-center justify-center text-3xl font-bold text-primary-600 mx-auto mb-6 shadow-xl relative z-10 group-hover:scale-110 transition-transform duration-300">3</div>
+                    <h3 class="text-2xl font-bold text-slate-900 mb-4">Rank</h3>
+                    <p class="text-slate-600 leading-relaxed">Auto-publish to your sites. Watch your rankings climb and organic traffic grow on the dashboard.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-24 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-20">
+                <h2 class="text-base font-semibold text-primary-600 tracking-wide uppercase mb-2">Pricing</h2>
+                <h2 class="text-4xl md:text-5xl font-bold text-slate-900 mb-6">Simple, Transparent Pricing</h2>
+                <p class="text-xl text-slate-600">Start with a 7-day free trial. Cancel anytime.</p>
+            </div>
+            
+            <div class="max-w-lg mx-auto relative hover:-translate-y-2 transition-transform duration-500">
+                <div class="absolute -inset-1 bg-gradient-to-r from-primary-400 to-primary-600 rounded-2xl blur opacity-30"></div>
+                <div class="relative bg-white rounded-2xl p-10 shadow-2xl border border-slate-100 overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-primary-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">POPULAR</div>
+                    <div class="text-center border-b border-slate-100 pb-8 mb-8">
+                        <h3 class="text-sm font-bold text-primary-600 tracking-widest uppercase mb-2">Pro Plan</h3>
+                        <div class="flex items-center justify-center mb-4">
+                            <span class="text-5xl font-extrabold text-slate-900">$99</span>
+                            <span class="text-xl text-slate-500 ml-2">/mo</span>
+                        </div>
+                        <p class="text-slate-500">For serious agencies & businesses</p>
+                    </div>
+                    
+                    <ul class="space-y-5 text-left mb-10">
+                        <li class="flex items-center text-slate-700">
+                            <div class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-3 flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                            <span class="font-medium">Unlimited WordPress sites</span>
+                        </li>
+                        <li class="flex items-center text-slate-700">
+                            <div class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-3 flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                            <span class="font-medium">Unlimited AI-generated blog posts</span>
+                        </li>
+                        <li class="flex items-center text-slate-700">
+                            <div class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-3 flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                            <span class="font-medium">AI keyword research & analysis</span>
+                        </li>
+                        <li class="flex items-center text-slate-700">
+                            <div class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-3 flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                            <span class="font-medium">AI-generated featured images</span>
+                        </li>
+                        <li class="flex items-center text-slate-700">
+                            <div class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-3 flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                            <span class="font-medium">Content calendar & scheduling</span>
+                        </li>
+                    </ul>
+
+                    <a href="signup.html" class="block w-full bg-primary-600 text-white py-4 rounded-xl hover:bg-primary-700 transition-colors font-bold text-center shadow-lg shadow-primary-500/25">
+                        Start 7-Day Free Trial
+                    </a>
+                    <p class="text-center text-xs text-slate-400 mt-4">No commitment, cancel anytime.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-24 bg-slate-900 relative overflow-hidden">
+        <div class="absolute inset-0 bg-primary-900/20"></div>
+        <div class="absolute -right-20 -top-20 w-96 h-96 bg-primary-600 rounded-full blur-[128px] opacity-30"></div>
+        <div class="absolute -left-20 -bottom-20 w-96 h-96 bg-purple-600 rounded-full blur-[128px] opacity-30"></div>
+        
+        <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-4xl md:text-5xl font-bold text-white mb-8">Ready to Scale Your SEO?</h2>
+            <p class="text-xl text-slate-300 mb-10 max-w-2xl mx-auto">Join hundreds of high-growth agencies and businesses automating their content strategy today.</p>
+            <a href="signup.html" class="inline-block bg-white text-primary-900 px-10 py-5 rounded-full hover:bg-slate-50 transition-all font-bold text-lg shadow-2xl hover:scale-105">
+                Start Your 7-Day Free Trial
+            </a>
+            <p class="text-slate-400 text-sm mt-8">No credit card required for setup • Cancel anytime</p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 text-slate-400 py-16 border-t border-slate-900">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-4 gap-12 mb-12">
+                <div class="col-span-1 md:col-span-1">
+                    <img src="assets/apex-logo.png" alt="Apex SEO" class="h-8 mb-6 brightness-0 invert opacity-80">
+                    <p class="text-sm leading-relaxed text-slate-500">
+                        The world's most advanced AI-powered WordPress automation platform. Built for performance, designed for scale.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-6 tracking-wide text-sm uppercase">Product</h4>
+                    <ul class="space-y-3 text-sm">
+                        <li><a href="#features" class="hover:text-primary-400 transition-colors">Features</a></li>
+                        <li><a href="#pricing" class="hover:text-primary-400 transition-colors">Pricing</a></li>
+                        <li><a href="blog/index.html" class="hover:text-primary-400 transition-colors">Blog</a></li>
+                        <li><a href="#how-it-works" class="hover:text-primary-400 transition-colors">How It Works</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-6 tracking-wide text-sm uppercase">Company</h4>
+                    <ul class="space-y-3 text-sm">
+                        <li><a href="signup.html" class="hover:text-primary-400 transition-colors">Sign Up</a></li>
+                        <li><a href="termsandconditions.html" class="hover:text-primary-400 transition-colors">Terms & Conditions</a></li>
+                        <li><a href="privacy.html" class="hover:text-primary-400 transition-colors">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-6 tracking-wide text-sm uppercase">Contact</h4>
+                    <p class="text-sm mb-2">support@apexseo.com</p>
+                    <div class="flex space-x-4 mt-6">
+                        <!-- Social placeholders -->
+                        <a href="#" class="text-slate-500 hover:text-white transition-colors"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg></a>
+                        <a href="#" class="text-slate-500 hover:text-white transition-colors"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-slate-900 pt-8 text-center text-sm text-slate-600">
+                <p>&copy; 2026 Apex SEO. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+        
+        // Sticky header transparency on scroll
+        window.addEventListener('scroll', function() {
+            const header = document.querySelector('header');
+            if (window.scrollY > 10) {
+                header.classList.add('shadow-md');
+            } else {
+                header.classList.remove('shadow-md');
+            }
+        });
+    </script>
+</body>
+</html>

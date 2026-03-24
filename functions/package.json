@@ -1,0 +1,47 @@
+{
+  "name": "functions",
+  "scripts": {
+    "lint": "eslint .",
+    "copy-website": "node -e \"const fs=require('fs'),p=require('path');const src=p.join(__dirname,'..','website');const dest=p.join(__dirname,'website');if(fs.existsSync(src)){fs.cpSync(src,dest,{recursive:true});console.log('Copied website into functions/website');}\"",
+    "build": "npm run copy-website && tsc",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
+    "@google-cloud/secret-manager": "^6.1.1",
+    "@google-cloud/tasks": "^6.2.1",
+    "@types/archiver": "^7.0.0",
+    "@types/nodemailer": "^7.0.5",
+    "anthropic": "^0.0.0",
+    "archiver": "^7.0.1",
+    "axios": "^1.13.4",
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^4.5.0",
+    "form-data": "^4.0.5",
+    "node-fetch": "^2.7.0",
+    "nodemailer": "^7.0.12",
+    "openai": "^6.16.0",
+    "stripe": "^20.2.0",
+    "wrangler": "^4.61.0",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@types/form-data": "^2.5.0",
+    "@types/node-fetch": "^2.6.11",
+    "@types/xml2js": "^0.4.14",
+    "@typescript-eslint/eslint-plugin": "^5.12.0",
+    "@typescript-eslint/parser": "^5.12.0",
+    "eslint": "^8.9.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-plugin-import": "^2.25.4",
+    "typescript": "^4.9.0"
+  },
+  "private": true
+}

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Site Management for Agencies - Apex SEO</title>
+    <meta name="description" content="Scale your SEO agency. Manage unlimited WordPress sites, content calendars, and reporting from a single dashboard.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                            950: '#1e1b4b',
+                        }
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 1s ease-out',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased">
+    <!-- Header (Consistent) -->
+    <header class="fixed w-full top-0 z-50 transition-all duration-300 bg-white/80 backdrop-blur-md border-b border-slate-200">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center group">
+                        <img src="assets/apex-logo.png" alt="Apex SEO" class="h-10 transition-transform duration-300 group-hover:scale-105">
+                    </a>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <!-- Features Dropdown -->
+                    <div class="relative group">
+                        <button class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors flex items-center gap-1 py-2">
+                            Features
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="absolute left-0 mt-0 w-64 bg-white border border-slate-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
+                            <div class="p-2">
+                                <a href="topical-authority.html" class="block px-4 py-3 rounded-lg hover:bg-slate-50 text-sm">
+                                    <div class="font-semibold text-slate-900">Topical Authority</div>
+                                    <div class="text-xs text-slate-500 mt-1">Pillar & cluster strategy</div>
+                                </a>
+                                <a href="keyword-research.html" class="block px-4 py-3 rounded-lg hover:bg-slate-50 text-sm">
+                                    <div class="font-semibold text-slate-900">Keyword Research</div>
+                                    <div class="text-xs text-slate-500 mt-1">AI-powered discovery</div>
+                                </a>
+                                <a href="wordpress-integration.html" class="block px-4 py-3 rounded-lg hover:bg-slate-50 text-sm">
+                                    <div class="font-semibold text-slate-900">WordPress Integration</div>
+                                    <div class="text-xs text-slate-500 mt-1">1-click connection</div>
+                                </a>
+                                <a href="multisite-management.html" class="block px-4 py-3 rounded-lg hover:bg-slate-50 text-sm">
+                                    <div class="font-semibold text-slate-900">Multi-Site Management</div>
+                                    <div class="text-xs text-slate-500 mt-1">Scale your agency</div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="index.html#pricing" class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors">Pricing</a>
+                    <a href="contact.html" class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors">Contact</a>
+                    <a href="signup.html" class="bg-primary-600 text-white px-5 py-2.5 rounded-full hover:bg-primary-700 transition-all shadow-lg shadow-primary-500/30 text-sm font-semibold hover:-translate-y-0.5">Start Free Trial</a>
+                </div>
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-slate-700 p-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20 bg-slate-900 overflow-hidden relative">
+        <div class="absolute inset-0 bg-primary-900/20"></div>
+        <div class="absolute -right-20 -top-20 w-96 h-96 bg-primary-600 rounded-full blur-[128px] opacity-20"></div>
+        
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center max-w-3xl mx-auto">
+                <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full mb-6">
+                    <span class="text-xs font-semibold text-primary-300 uppercase tracking-wider">Agency Scale</span>
+                </div>
+                <h1 class="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+                    Manage 100+ Sites<br><span class="text-primary-400">Without the Headache</span>
+                </h1>
+                <p class="text-xl text-slate-300 mb-8 leading-relaxed">
+                    The ultimate dashboard for agencies and portfolio owners. Switch between client sites, manage approvals, and track performance from one central command center.
+                </p>
+                <div class="flex justify-center gap-4">
+                    <a href="signup.html" class="bg-primary-600 text-white px-8 py-4 rounded-full font-bold hover:bg-primary-500 transition-all shadow-lg shadow-primary-900/50">
+                        Start Free Trial
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Agency Features -->
+    <section class="py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-3 gap-8 text-center">
+                <div class="p-8">
+                    <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-primary-600 mx-auto mb-6">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Unlimited Sites</h3>
+                    <p class="text-slate-600">No per-site fees. Add as many WordPress sites as you need under a single subscription. Perfect for growing agencies.</p>
+                </div>
+
+                <div class="p-8">
+                    <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-primary-600 mx-auto mb-6">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Approval Workflows</h3>
+                    <p class="text-slate-600">Review content before it goes live. Generate in bulk, approve the best posts, and schedule them out for months.</p>
+                </div>
+
+                <div class="p-8">
+                    <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-primary-600 mx-auto mb-6">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Unified Reporting</h3>
+                    <p class="text-slate-600">See performance across your entire portfolio. Track total traffic, keywords ranked, and published posts in one view.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 text-slate-400 py-12 border-t border-slate-900">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p>&copy; 2026 Apex SEO. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
