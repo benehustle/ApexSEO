@@ -29,12 +29,24 @@ export const ShoplineAuthCallback: React.FC = () => {
 
     const processCallback = async () => {
       const code = searchParams.get('code');
-      const handle =
+      const customField = searchParams.get('customField') || undefined;
+
+      // Try to get handle from query params first; fall back to customField (stored during auth URL generation)
+      let handle =
         searchParams.get('handle') ||
         searchParams.get('shop') ||
         searchParams.get('shopHandle') ||
+        searchParams.get('merchantHandle') ||
         '';
-      const customField = searchParams.get('customField') || undefined;
+
+      if (!handle && customField) {
+        try {
+          const parsed = JSON.parse(customField);
+          handle = parsed.handle || '';
+        } catch {
+          // ignore parse errors
+        }
+      }
 
       if (!code) {
         setStatus('error');

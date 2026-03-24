@@ -3570,7 +3570,7 @@ export async function processCalendarEntry(
   siteId: string,
   calendarId: string,
   mode: "draft" | "publish" = "publish"
-): Promise<{ success: boolean; postId?: number; postUrl?: string; error?: string }> {
+): Promise<{ success: boolean; postId?: number | string; postUrl?: string; error?: string }> {
   const calendarRef = admin.firestore()
     .collection("sites")
     .doc(siteId)
@@ -3821,23 +3821,48 @@ export async function processCalendarEntry(
         };
       }
 
-      // Step 8: Publish to WordPress
-      console.log("[processCalendarEntry] Publishing to WordPress...");
+      // Step 8: Publish to WordPress or Shopline depending on site platform
       // Use optimized blogTitle if available, otherwise fallback to blogTopic
       const postTitle = blogTitle || calendarData.blogTopic;
       // Use optimized blogDescription if available, otherwise fallback to original blogDescription
       const postExcerpt = blogDescription || calendarData.blogDescription;
 
-      const publishResult = await publishToWordPress(siteId, {
-        title: postTitle,
-        content: htmlContent,
-        slug: slug,
-        excerpt: postExcerpt,
-        featuredImageUrl: featuredImageUrl,
-        wordpressMediaId: calendarData.wordpressMediaId as number | undefined,
-      });
+      const sitePlatform = (siteData.platform || "wordpress") as string;
+      let publishResult: {postId: string | number; postUrl: string};
 
-      console.log(`[processCalendarEntry] ✅ Published to WordPress. Post ID: ${publishResult.postId}, URL: ${publishResult.postUrl}`);
+      if (sitePlatform === "shopline") {
+        console.log("[processCalendarEntry] Publishing to Shopline...");
+        const {publishToShopline: doPublishToShopline} = await import("./shopline");
+        const shoplineHandle = siteData.shoplineHandle as string;
+        const shoplineAccessToken = siteData.shoplineAccessToken as string;
+
+        if (!shoplineHandle || !shoplineAccessToken) {
+          throw new Error("Shopline handle or access token missing in site configuration");
+        }
+
+        const result = await doPublishToShopline(shoplineHandle, shoplineAccessToken, {
+          title: postTitle,
+          content: htmlContent,
+          excerpt: postExcerpt,
+          featuredImageUrl: featuredImageUrl,
+          slug,
+        });
+
+        publishResult = {postId: result.postId, postUrl: result.postUrl};
+        console.log(`[processCalendarEntry] ✅ Published to Shopline. Article ID: ${result.postId}, URL: ${result.postUrl}`);
+      } else {
+        console.log("[processCalendarEntry] Publishing to WordPress...");
+        const wpResult = await publishToWordPress(siteId, {
+          title: postTitle,
+          content: htmlContent,
+          slug: slug,
+          excerpt: postExcerpt,
+          featuredImageUrl: featuredImageUrl,
+          wordpressMediaId: calendarData.wordpressMediaId as number | undefined,
+        });
+        publishResult = {postId: wpResult.postId, postUrl: wpResult.postUrl};
+        console.log(`[processCalendarEntry] ✅ Published to WordPress. Post ID: ${wpResult.postId}, URL: ${wpResult.postUrl}`);
+      }
 
       // Step 9: Update Firestore document with success
       const publishUpdate: any = {
@@ -4725,7 +4750,7 @@ async function runScheduledPostProcessor(): Promise<{
   totalFound: number;
   successful: number;
   failed: number;
-  results: Array<{ success: boolean; calendarId: string; siteId: string; error?: string; postId?: number }>;
+  results: Array<{ success: boolean; calendarId: string; siteId: string; error?: string; postId?: number | string }>;
 }> {
   console.log("[runScheduledPostProcessor] ========================================");
   console.log("[runScheduledPostProcessor] Starting scheduled post publishing check...");
@@ -4771,7 +4796,7 @@ async function runScheduledPostProcessor(): Promise<{
   // Step 2: Process entries in batches with concurrency control
   const entries = snapshot.docs;
   const concurrencyLimit = 5; // Process 5 entries at a time to avoid rate limits
-  const results: Array<{ success: boolean; calendarId: string; siteId: string; error?: string; postId?: number }> = [];
+  const results: Array<{ success: boolean; calendarId: string; siteId: string; error?: string; postId?: number | string }> = [];
 
   console.log(`[runScheduledPostProcessor] Processing ${entries.length} entries in batches of ${concurrencyLimit}`);
 

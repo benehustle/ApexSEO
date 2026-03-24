@@ -74,7 +74,7 @@ function verifyShoplineGetSignature(
   return timingSafeEqualHex(expected, receivedSign);
 }
 
-function parseCustomField(customField?: string): {siteId?: string; returnTo?: string} {
+function parseCustomField(customField?: string): {siteId?: string; returnTo?: string; handle?: string} {
   if (!customField) return {};
   try {
     return JSON.parse(customField);
@@ -94,7 +94,7 @@ export const generateShoplineAuthUrlCallable = region.runWith({
   const handle = String(data?.handle || "").trim();
   const siteId = data?.siteId ? String(data.siteId).trim() : undefined;
   const returnTo = data?.returnTo ? String(data.returnTo).trim() : "/onboarding";
-  const scope = String(data?.scope || "read_blogs,write_blogs");
+  const scope = String(data?.scope || "read_content,write_content");
 
   if (!handle) {
     throw new functions.https.HttpsError("invalid-argument", "Shopline handle is required");
@@ -103,7 +103,7 @@ export const generateShoplineAuthUrlCallable = region.runWith({
   try {
     const appKey = await getShoplineAppKey();
     const redirectUri = `${getAppUrl().replace(/\/$/, "")}/auth/callback`;
-    const customField = JSON.stringify({siteId, returnTo});
+    const customField = JSON.stringify({siteId, returnTo, handle});
 
     const params = new URLSearchParams({
       appKey,
@@ -133,10 +133,11 @@ export const exchangeShoplineCodeCallable = region.runWith({
 
   const userId = context.auth.uid;
   const code = String(data?.code || "").trim();
-  const handle = String(data?.handle || "").trim();
   const siteId = data?.siteId ? String(data.siteId).trim() : undefined;
   const queryParams = (data?.queryParams || {}) as Record<string, string>;
   const customFieldData = parseCustomField(data?.customField ? String(data.customField) : undefined);
+  // handle can come from direct param or be recovered from customField (set during auth URL generation)
+  const handle = (String(data?.handle || "").trim()) || (customFieldData.handle || "");
   const targetSiteId = siteId || customFieldData.siteId;
 
   if (!code) {
@@ -242,4 +243,114 @@ export const exchangeShoplineCodeCallable = region.runWith({
     throw new functions.https.HttpsError("internal", error.message || "Shopline callback exchange failed");
   }
 });
+
+/**
+ * Publish a blog article to a Shopline store.
+ * Uses the Shopline OpenAPI 2022-01 Articles endpoint.
+ *
+ * @param handle  - Shopline store handle (e.g. "mystore")
+ * @param accessToken - OAuth access token for the store
+ * @param article - Article content and metadata
+ * @returns Post ID and URL for the published article
+ */
+export async function publishToShopline(
+  handle: string,
+  accessToken: string,
+  article: {
+    title: string;
+    content: string;
+    excerpt?: string;
+    featuredImageUrl?: string;
+    slug?: string;
+  }
+): Promise<{postId: string; postUrl: string}> {
+  const baseUrl = `https://${handle}.myshopline.com`;
+
+  // Step 1: Get the first available blog (or create one if none exist)
+  const blogsRes = await fetch(`${baseUrl}/openapi/2022-01/blogs.json`, {
+    method: "GET",
+    headers: {
+      "Authorization": accessToken,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!blogsRes.ok) {
+    const errText = await blogsRes.text();
+    throw new Error(`Failed to fetch Shopline blogs: ${blogsRes.status} ${errText}`);
+  }
+
+  const blogsData: any = await blogsRes.json();
+  const blogs: any[] = blogsData?.blogs || blogsData?.data?.blogs || [];
+
+  let blogId: string;
+  if (blogs.length > 0) {
+    blogId = String(blogs[0].id);
+  } else {
+    // Create a default blog
+    const createBlogRes = await fetch(`${baseUrl}/openapi/2022-01/blogs.json`, {
+      method: "POST",
+      headers: {
+        "Authorization": accessToken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({blog: {title: "News"}}),
+    });
+    if (!createBlogRes.ok) {
+      const errText = await createBlogRes.text();
+      throw new Error(`Failed to create Shopline blog: ${createBlogRes.status} ${errText}`);
+    }
+    const newBlog: any = await createBlogRes.json();
+    blogId = String(newBlog?.blog?.id || newBlog?.data?.blog?.id);
+    if (!blogId) throw new Error("Failed to get blog ID from Shopline create blog response");
+  }
+
+  // Step 2: Build article payload
+  const articlePayload: any = {
+    article: {
+      title: article.title,
+      body_html: article.content,
+      published: true,
+    },
+  };
+
+  if (article.excerpt) {
+    articlePayload.article.summary_html = article.excerpt;
+  }
+
+  if (article.slug) {
+    articlePayload.article.handle = article.slug;
+  }
+
+  if (article.featuredImageUrl) {
+    articlePayload.article.image = {src: article.featuredImageUrl};
+  }
+
+  // Step 3: Create the article
+  const articleRes = await fetch(`${baseUrl}/openapi/2022-01/blogs/${blogId}/articles.json`, {
+    method: "POST",
+    headers: {
+      "Authorization": accessToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(articlePayload),
+  });
+
+  if (!articleRes.ok) {
+    const errText = await articleRes.text();
+    throw new Error(`Failed to create Shopline article: ${articleRes.status} ${errText}`);
+  }
+
+  const articleData: any = await articleRes.json();
+  const created = articleData?.article || articleData?.data?.article;
+
+  if (!created?.id) {
+    throw new Error("Shopline article created but no ID returned");
+  }
+
+  const articleHandle = created.handle || article.slug || String(created.id);
+  const postUrl = created.url || `${baseUrl}/blogs/${blogs[0]?.handle || "news"}/${articleHandle}`;
+
+  return {postId: String(created.id), postUrl};
+}
 
