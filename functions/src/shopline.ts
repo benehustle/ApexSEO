@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 import * as crypto from "crypto";
 import {SecretManagerServiceClient} from "@google-cloud/secret-manager";
 
-const region = functions.region("australia-southeast1");
+const region = functions.region("asia-southeast1");
 const secretClient = new SecretManagerServiceClient();
 const PROJECT_ID = process.env.GCLOUD_PROJECT || "apex-seo-ffbd0";
 
@@ -12,7 +12,7 @@ let cachedShoplineAppKey: string | null = null;
 let cachedShoplineAppSecret: string | null = null;
 
 function getAppUrl(): string {
-  return process.env.APP_URL || functions.config().app?.url || "https://apex-seo.app";
+  return process.env.APP_URL || functions.config().app?.url || "https://seo.myapex.io";
 }
 
 async function getSecretValue(secretName: string, envFallback: string): Promise<string | null> {
@@ -25,8 +25,9 @@ async function getSecretValue(secretName: string, envFallback: string): Promise<
     console.warn(`[shopline] Failed to fetch ${secretName} from Secret Manager:`, error.message);
   }
 
-  if (process.env[envFallback] && process.env[envFallback]!.length > 0) {
-    return process.env[envFallback]!;
+  const envVal = process.env[envFallback];
+  if (envVal && envVal.length > 0) {
+    return envVal;
   }
 
   return null;
@@ -166,35 +167,47 @@ export const exchangeShoplineCodeCallable = region.runWith({
       }
     }
 
-    const tokenUrl = `https://${handle}.myshopline.com/admin/oauth/token/create`;
+    // Shopline token exchange proxied through Cloudflare Worker
+    // (GCP datacenter IPs are geo-blocked by Shopline's WAF; Cloudflare edge IPs are not)
+    const proxyUrl = "https://shopline.ben-7da.workers.dev";
+    const proxySecret = process.env.SHOPLINE_PROXY_SECRET || "";
     const timestamp = Date.now().toString();
     const body = JSON.stringify({code});
     const sign = hmacSha256(`${body}${timestamp}`, appSecret);
 
-    const response = await fetch(tokenUrl, {
+    console.log("[shopline] Calling proxy for token exchange, handle:", handle);
+
+    const response = await fetch(proxyUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        appkey: appKey,
-        timestamp,
-        sign,
+        "X-Proxy-Secret": proxySecret,
       },
-      body,
+      body: JSON.stringify({handle, code, appKey, timestamp, sign}),
     });
 
-    const tokenResult: any = await response.json();
-    if (!response.ok || tokenResult?.code !== 200 || !tokenResult?.data) {
+    const rawText = await response.text();
+    console.log(`[shopline] Token exchange HTTP status: ${response.status}, body: ${rawText.slice(0, 500)}`);
+    let tokenResult: any;
+    try {
+      tokenResult = JSON.parse(rawText);
+    } catch {
       throw new functions.https.HttpsError(
         "internal",
-        `Token exchange failed: ${tokenResult?.message || response.statusText || "Unknown error"}`
+        `Token exchange failed: unexpected response from Shopline: ${rawText.slice(0, 200)}`
       );
     }
 
-    const accessToken = tokenResult.data.accessToken || tokenResult.data.access_token;
-    const expireTime = tokenResult.data.expireTime || tokenResult.data.expire_time || null;
-    if (!accessToken) {
-      throw new functions.https.HttpsError("internal", "Shopline did not return an access token");
+    // Response: { code: 200, data: { accessToken, expireTime, scope } }
+    if (tokenResult?.code !== 200 || !tokenResult?.data?.accessToken) {
+      throw new functions.https.HttpsError(
+        "internal",
+        `Token exchange failed: ${tokenResult?.message || tokenResult?.i18nCode || JSON.stringify(tokenResult).slice(0, 200)}`
+      );
     }
+
+    const accessToken = tokenResult.data.accessToken;
+    const expireTime = tokenResult?.data?.expireTime || null;
 
     if (targetSiteId) {
       const siteRef = admin.firestore().collection("sites").doc(targetSiteId);
@@ -238,8 +251,10 @@ export const exchangeShoplineCodeCallable = region.runWith({
     };
   } catch (error: any) {
     if (error instanceof functions.https.HttpsError) {
+      console.error(`[shopline] HttpsError: ${error.code} - ${error.message}`);
       throw error;
     }
+    console.error("[shopline] Unexpected error:", error);
     throw new functions.https.HttpsError("internal", error.message || "Shopline callback exchange failed");
   }
 });
@@ -248,10 +263,10 @@ export const exchangeShoplineCodeCallable = region.runWith({
  * Publish a blog article to a Shopline store.
  * Uses the Shopline OpenAPI 2022-01 Articles endpoint.
  *
- * @param handle  - Shopline store handle (e.g. "mystore")
- * @param accessToken - OAuth access token for the store
- * @param article - Article content and metadata
- * @returns Post ID and URL for the published article
+ * @param {string} handle - Shopline store handle (e.g. "mystore")
+ * @param {string} accessToken - OAuth access token for the store
+ * @param {object} article - Article content and metadata
+ * @return {Promise<{postId: string, postUrl: string}>} Post ID and URL for the published article
  */
 export async function publishToShopline(
   handle: string,
@@ -264,92 +279,87 @@ export async function publishToShopline(
     slug?: string;
   }
 ): Promise<{postId: string; postUrl: string}> {
-  const baseUrl = `https://${handle}.myshopline.com`;
+  const proxyUrl = "https://shopline.ben-7da.workers.dev";
+  const proxySecret = process.env.SHOPLINE_PROXY_SECRET || "";
+  const baseUrl = `https://${handle}.myshopline.com/admin/openapi/v20220601/store`;
+  const authHeaders = {
+    "Authorization": `Bearer ${accessToken}`,
+    "User-Agent": "ApexSEO/1.0",
+  };
 
-  // Step 1: Get the first available blog (or create one if none exist)
-  const blogsRes = await fetch(`${baseUrl}/openapi/2022-01/blogs.json`, {
-    method: "GET",
-    headers: {
-      "Authorization": accessToken,
-      "Content-Type": "application/json",
-    },
-  });
-
-  if (!blogsRes.ok) {
-    const errText = await blogsRes.text();
-    throw new Error(`Failed to fetch Shopline blogs: ${blogsRes.status} ${errText}`);
+  /**
+   * Helper to make a proxied Shopline API call.
+   */
+  async function shoplineProxy(
+    url: string,
+    method: string,
+    body?: object
+  ): Promise<any> {
+    console.log(`[shopline] proxy -> ${method} ${url}`, body ? JSON.stringify(body).slice(0, 200) : "");
+    const res = await fetch(proxyUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Proxy-Secret": proxySecret,
+      },
+      body: JSON.stringify({url, method, headers: authHeaders, body}),
+    });
+    const text = await res.text();
+    console.log(`[shopline] proxy <- ${res.status}: ${text.slice(0, 300)}`);
+    if (!res.ok) {
+      throw new Error(`Shopline API error (${res.status}): ${text.slice(0, 300)}`);
+    }
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(`Shopline API non-JSON response: ${text.slice(0, 300)}`);
+    }
   }
 
-  const blogsData: any = await blogsRes.json();
+  // Step 1: Get the first available blog (or create one if none exist)
+  const blogsData = await shoplineProxy(`${baseUrl}/blogs.json`, "GET");
   const blogs: any[] = blogsData?.blogs || blogsData?.data?.blogs || [];
 
   let blogId: string;
   if (blogs.length > 0) {
     blogId = String(blogs[0].id);
   } else {
-    // Create a default blog
-    const createBlogRes = await fetch(`${baseUrl}/openapi/2022-01/blogs.json`, {
-      method: "POST",
-      headers: {
-        "Authorization": accessToken,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({blog: {title: "News"}}),
-    });
-    if (!createBlogRes.ok) {
-      const errText = await createBlogRes.text();
-      throw new Error(`Failed to create Shopline blog: ${createBlogRes.status} ${errText}`);
-    }
-    const newBlog: any = await createBlogRes.json();
+    const newBlog = await shoplineProxy(
+      `${baseUrl}/blogs.json`,
+      "POST",
+      {blog: {title: "News"}}
+    );
     blogId = String(newBlog?.blog?.id || newBlog?.data?.blog?.id);
     if (!blogId) throw new Error("Failed to get blog ID from Shopline create blog response");
   }
 
-  // Step 2: Build article payload
+  // Step 2: Build article payload (Shopline uses "blog" wrapper with "content_html")
   const articlePayload: any = {
-    article: {
+    blog: {
       title: article.title,
-      body_html: article.content,
+      content_html: article.content,
       published: true,
     },
   };
-
-  if (article.excerpt) {
-    articlePayload.article.summary_html = article.excerpt;
-  }
-
-  if (article.slug) {
-    articlePayload.article.handle = article.slug;
-  }
-
-  if (article.featuredImageUrl) {
-    articlePayload.article.image = {src: article.featuredImageUrl};
-  }
+  if (article.excerpt) articlePayload.blog.digest = article.excerpt;
+  if (article.slug) articlePayload.blog.handle = article.slug;
+  if (article.featuredImageUrl) articlePayload.blog.image = {src: article.featuredImageUrl};
 
   // Step 3: Create the article
-  const articleRes = await fetch(`${baseUrl}/openapi/2022-01/blogs/${blogId}/articles.json`, {
-    method: "POST",
-    headers: {
-      "Authorization": accessToken,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(articlePayload),
-  });
-
-  if (!articleRes.ok) {
-    const errText = await articleRes.text();
-    throw new Error(`Failed to create Shopline article: ${articleRes.status} ${errText}`);
-  }
-
-  const articleData: any = await articleRes.json();
-  const created = articleData?.article || articleData?.data?.article;
+  const articleData = await shoplineProxy(
+    `${baseUrl}/blogs/${blogId}/articles.json`,
+    "POST",
+    articlePayload
+  );
+  const created = articleData?.blog || articleData?.data?.blog || articleData?.article || articleData?.data?.article;
 
   if (!created?.id) {
     throw new Error("Shopline article created but no ID returned");
   }
 
   const articleHandle = created.handle || article.slug || String(created.id);
-  const postUrl = created.url || `${baseUrl}/blogs/${blogs[0]?.handle || "news"}/${articleHandle}`;
+  const storeUrl = `https://${handle}.myshopline.com`;
+  const postUrl = created.url || `${storeUrl}/blogs/${blogs[0]?.handle || "news"}/${articleHandle}`;
 
   return {postId: String(created.id), postUrl};
 }

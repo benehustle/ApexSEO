@@ -244,7 +244,6 @@ export function validateMetaDescription(metaDesc: string): {
   warning?: string;
 } {
   const length = metaDesc.length;
-  const targetLength = 155;
   const minLength = 120;
   const maxLength = 160;
 
@@ -319,10 +318,6 @@ export function calculateReadabilityScore(htmlContent: string): number {
     const syllables = (word.match(/[aeiou]+/gi) || []).length;
     return sum + Math.max(1, syllables); // Minimum 1 syllable per word
   }, 0);
-
-  // Flesch-Kincaid Grade Level formula
-  const gradeLevel = (0.39 * (wordCount / sentenceCount)) +
-    (11.8 * (syllableCount / wordCount)) - 15.59;
 
   // Convert to Flesch Reading Ease (0-100)
   // Reading Ease = 206.835 - (1.015 × ASL) - (84.6 × ASP)
@@ -449,7 +444,7 @@ export function optimizeForFeaturedSnippets(
  */
 export function validateInternalLinks(
   htmlContent: string,
-  siteUrl: string
+  _siteUrl: string
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
   const linkRegex = /<a\s+[^>]*href=['"]([^'"]+)['"]/gi;

@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import {generateBlogContent, processCalendarEntry, callGeminiAPI} from "../index";
+import {getNextMWFDates} from "../scheduling";
 
 // Configure region to match Firestore
 const region = functions.region("australia-southeast1");
@@ -115,34 +116,22 @@ async function handlePlanTopics(siteId: string): Promise<void> {
   console.log(`[contentWorker] plan_topics: Site ${siteId} needs ${needed} more posts`);
 
   // Step 3: Get site settings
-  const postingFrequency = siteData.postingFrequency || 1;
   const niche = siteData.industry || "general";
 
-  // Step 4: Get latest scheduled date
-  let latestDate: Date;
+  // Step 4: Find anchor date and generate MWF slots
+  let anchorDateWorker: Date;
   if (unpublishedEntries.length > 0) {
     const dates = unpublishedEntries
       .map((doc) => {
-        const data = doc.data();
-        const scheduledDate = data.scheduledDate;
-        return scheduledDate ? scheduledDate.toDate() : null;
+        const sd = doc.data().scheduledDate;
+        return sd ? (sd as admin.firestore.Timestamp).toDate() : null;
       })
-      .filter((date): date is Date => date !== null);
-
-    if (dates.length > 0) {
-      latestDate = new Date(Math.max(...dates.map((d) => d.getTime())));
-      // CRITICAL: Reset to midnight even if existing date had a different time
-      latestDate.setHours(0, 0, 0, 0);
-    } else {
-      latestDate = new Date();
-      latestDate.setDate(latestDate.getDate() + 1);
-      latestDate.setHours(0, 0, 0, 0);
-    }
+      .filter((d): d is Date => d !== null);
+    anchorDateWorker = dates.length > 0 ? new Date(Math.max(...dates.map((d) => d.getTime()))) : new Date();
   } else {
-    latestDate = new Date();
-    latestDate.setDate(latestDate.getDate() + 1);
-    latestDate.setHours(0, 0, 0, 0);
+    anchorDateWorker = new Date();
   }
+  const mwfSlotsWorker = getNextMWFDates(needed, anchorDateWorker);
 
   // Step 5: Get targeted keywords
   const targetedKeywords = (siteData.targetedKeywords || []) as string[];
@@ -154,21 +143,9 @@ async function handlePlanTopics(siteId: string): Promise<void> {
     }
   });
 
-  // Step 6: Generate new posts
+  // Step 6: Generate new posts on Mon/Wed/Fri at 02:00 UTC
   for (let i = 0; i < needed; i++) {
-    // Calculate next scheduled date
-    const scheduledDate = new Date(latestDate);
-    scheduledDate.setDate(latestDate.getDate() + ((i + 1) * postingFrequency));
-    scheduledDate.setHours(0, 0, 0, 0); // Ensure midnight
-
-    // Skip weekends
-    if (scheduledDate.getDay() === 0) {
-      scheduledDate.setDate(scheduledDate.getDate() + 1); // Move to Monday
-      scheduledDate.setHours(0, 0, 0, 0);
-    } else if (scheduledDate.getDay() === 6) {
-      scheduledDate.setDate(scheduledDate.getDate() + 2); // Move to Monday
-      scheduledDate.setHours(0, 0, 0, 0);
-    }
+    const scheduledDate = mwfSlotsWorker[i];
 
     // Get or generate keyword
     let keyword: string;

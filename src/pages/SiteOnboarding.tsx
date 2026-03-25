@@ -4,7 +4,7 @@ import { wordpressService } from '../services/wordpress.service';
 import { useAuth } from '../hooks/useAuth';
 import { useAgencyContext } from '../contexts/AgencyContext';
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '../config/firebase';
+import { functions, functionsAsia } from '../config/firebase';
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
 
 const WordPressLogo: React.FC<{ className?: string }> = ({ className = 'w-8 h-8' }) => (
@@ -55,12 +55,39 @@ export const SiteOnboarding: React.FC = () => {
     try {
       const parsed = JSON.parse(raw) as { handle?: string; accessToken?: string };
       if (parsed?.handle && parsed?.accessToken) {
-        setFormData((prev) => ({
-          ...prev,
-          platform: 'shopline',
-          shoplineHandle: parsed.handle!,
-          shoplineAccessToken: parsed.accessToken!,
-        }));
+        // Restore previously saved onboarding state (platform, name, URL, etc.)
+        const savedState = sessionStorage.getItem('onboarding_state');
+        if (savedState) {
+          try {
+            const { formData: savedForm, step: savedStep } = JSON.parse(savedState);
+            setFormData((prev) => ({
+              ...prev,
+              ...savedForm,
+              shoplineHandle: parsed.handle!,
+              shoplineAccessToken: parsed.accessToken!,
+            }));
+            // Advance past the connection step since OAuth just completed
+            setStep(Math.max(savedStep + 1, 4));
+          } catch {
+            setFormData((prev) => ({
+              ...prev,
+              platform: 'shopline',
+              shoplineHandle: parsed.handle!,
+              shoplineAccessToken: parsed.accessToken!,
+            }));
+            setStep(4);
+          } finally {
+            sessionStorage.removeItem('onboarding_state');
+          }
+        } else {
+          setFormData((prev) => ({
+            ...prev,
+            platform: 'shopline',
+            shoplineHandle: parsed.handle!,
+            shoplineAccessToken: parsed.accessToken!,
+          }));
+          setStep(4);
+        }
       }
     } catch (error) {
       console.error('Failed to parse shopline_oauth_result:', error);
@@ -395,7 +422,7 @@ export const SiteOnboarding: React.FC = () => {
                       return;
                     }
                     try {
-                      const getAuthUrl = httpsCallable(functions, 'generateShoplineAuthUrlCallable');
+                      const getAuthUrl = httpsCallable(functionsAsia, 'generateShoplineAuthUrlCallable');
                       const result = await getAuthUrl({
                         handle: formData.shoplineHandle.trim(),
                         returnTo: '/onboarding',
@@ -404,6 +431,8 @@ export const SiteOnboarding: React.FC = () => {
                       if (!data?.authUrl) {
                         throw new Error('Missing Shopline authorization URL.');
                       }
+                      // Save onboarding state so we can restore it after OAuth redirect
+                      sessionStorage.setItem('onboarding_state', JSON.stringify({ formData, step }));
                       window.location.href = data.authUrl;
                     } catch (error: any) {
                       console.error('Failed to start Shopline OAuth:', error);

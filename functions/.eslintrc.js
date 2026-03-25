@@ -36,5 +36,9 @@ module.exports = {
       "argsIgnorePattern": "^_"
     }], // Warn on unused vars, but ignore those starting with _
     "object-curly-spacing": "off",
+    "linebreak-style": "off",
+    "valid-jsdoc": "off",
+    "eol-last": "off",
+    "operator-linebreak": "off",
   },
 };

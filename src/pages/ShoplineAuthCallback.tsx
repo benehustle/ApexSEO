@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '../config/firebase';
+import { functionsAsia } from '../config/firebase';
 import { useAuth } from '../hooks/useAuth';
 
 type CallbackStatus = 'working' | 'success' | 'error' | 'login_required';
@@ -60,7 +60,7 @@ export const ShoplineAuthCallback: React.FC = () => {
       }
 
       try {
-        const exchangeCode = httpsCallable(functions, 'exchangeShoplineCodeCallable');
+        const exchangeCode = httpsCallable(functionsAsia, 'exchangeShoplineCodeCallable');
         const result = await exchangeCode({
           code,
           handle,

@@ -26,6 +26,7 @@ import {sendEmail} from "./mailer";
 import {searchExternalLinks, formatExternalLinksForPrompt} from "./externalLinks";
 import {buildAndDeploy} from "./deployBlog";
 import {enqueueTask} from "./queue/dispatcher";
+import {getNextMWFDate, getNextMWFDates} from "./scheduling";
 
 admin.initializeApp();
 
@@ -295,8 +296,8 @@ async function getAvailableGeminiModel(): Promise<string> {
  * @param {number} maxTokens - Maximum tokens to generate (default: 8000)
  * @return {Promise<string>} The generated text content
  */
-export async function callGeminiAPI(prompt: string, maxTokens = 8000): Promise<string> {
-  console.log(`[callGeminiAPI] Starting API call with maxTokens: ${maxTokens}`);
+export async function callGeminiAPI(prompt: string, maxTokens = 8000, jsonMode = false): Promise<string> {
+  console.log(`[callGeminiAPI] Starting API call with maxTokens: ${maxTokens}, jsonMode: ${jsonMode}`);
   const apiKey = await getGeminiApiKey();
   const model = await getAvailableGeminiModel();
   console.log(`[callGeminiAPI] Using model: ${model}, API key length: ${apiKey.length}`);
@@ -322,6 +323,7 @@ export async function callGeminiAPI(prompt: string, maxTokens = 8000): Promise<s
           }],
           generationConfig: {
             maxOutputTokens: maxTokens,
+            ...(jsonMode ? {responseMimeType: "application/json"} : {}),
           },
         }),
       });
@@ -554,7 +556,7 @@ Rules:
 
 Do NOT wrap the output in markdown blocks (like \`\`\`json). Just return the raw JSON string.`;
 
-    const rawResponse = await callGeminiAPI(prompt, 2000);
+    const rawResponse = await callGeminiAPI(prompt, 2000, true);
 
     // Validate that we got a response
     if (!rawResponse || rawResponse.trim().length < 50) {
@@ -1195,11 +1197,8 @@ Return ONLY valid JSON:
       contentPlans.push(...batchPlans);
     }
 
-    // Calculate schedule based on blogsPerWeek
-    const daysInterval = Math.floor(7 / blogsPerWeek);
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() + 1);
-    startDate.setHours(0, 0, 0, 0); // Set to midnight (12:00 AM)
+    // Schedule on Mon/Wed/Fri at 02:00 UTC
+    const mwfDatesCluster = getNextMWFDates(contentPlans.length);
 
     // Create blog documents with status "planned"
     const blogsRef = admin.firestore().collection("blogs");
@@ -1207,19 +1206,7 @@ Return ONLY valid JSON:
 
     for (let i = 0; i < contentPlans.length; i++) {
       const plan = contentPlans[i];
-      const scheduledDate = new Date(startDate);
-      scheduledDate.setDate(startDate.getDate() + (i * daysInterval));
-      scheduledDate.setHours(0, 0, 0, 0); // Ensure midnight (12:00 AM)
-
-      // Skip weekends
-      if (scheduledDate.getDay() === 0) {
-        scheduledDate.setDate(scheduledDate.getDate() + 1); // Move to Monday
-        scheduledDate.setHours(0, 0, 0, 0); // Ensure midnight
-      }
-      if (scheduledDate.getDay() === 6) {
-        scheduledDate.setDate(scheduledDate.getDate() + 2); // Move to Monday
-        scheduledDate.setHours(0, 0, 0, 0); // Ensure midnight
-      }
+      const scheduledDate = mwfDatesCluster[i];
 
       const blogRef = await blogsRef.add({
         siteId,
@@ -2784,7 +2771,8 @@ The htmlContent should be ready to paste directly into a WordPress editor. Start
     console.log(`[generateBlogContent] Generating content for keyword: ${keyword}, topic: ${blogTopic}`);
 
     // Use a higher maxTokens for long-form content (8000 tokens ≈ 6000 words)
-    const rawResponse = await callGeminiAPI(prompt, 8000);
+    // jsonMode=true forces Gemini to output valid JSON (avoids markdown wrapping issues)
+    const rawResponse = await callGeminiAPI(prompt, 8000, true);
 
     // Validate that we got a response
     if (!rawResponse || rawResponse.trim().length < 100) {
@@ -3823,7 +3811,7 @@ export async function processCalendarEntry(
 
       // Step 8: Publish to WordPress or Shopline depending on site platform
       // Use optimized blogTitle if available, otherwise fallback to blogTopic
-      const postTitle = blogTitle || calendarData.blogTopic;
+      const postTitle = blogTitle || calendarData.blogTopic || "New Blog Post";
       // Use optimized blogDescription if available, otherwise fallback to original blogDescription
       const postExcerpt = blogDescription || calendarData.blogDescription;
 
@@ -3831,7 +3819,7 @@ export async function processCalendarEntry(
       let publishResult: {postId: string | number; postUrl: string};
 
       if (sitePlatform === "shopline") {
-        console.log("[processCalendarEntry] Publishing to Shopline...");
+        console.log("[processCalendarEntry] Publishing to Shopline, title:", postTitle);
         const {publishToShopline: doPublishToShopline} = await import("./shopline");
         const shoplineHandle = siteData.shoplineHandle as string;
         const shoplineAccessToken = siteData.shoplineAccessToken as string;
@@ -4258,8 +4246,7 @@ export const regenerateBlogImageCallable = region.runWith({
 
     throw new functions.https.HttpsError(
       "internal",
-      "Failed to regenerate blog image",
-      error.message
+      `Failed to regenerate blog image: ${error.message}`
     );
   }
 });
@@ -4758,8 +4745,33 @@ async function runScheduledPostProcessor(): Promise<{
   const now = admin.firestore.Timestamp.now();
   console.log(`[runScheduledPostProcessor] Current time: ${now.toDate().toISOString()}`);
 
+  // Step 0: Orphan recovery — reset posts stuck in "processing" for > 30 minutes
+  const thirtyMinsAgo = admin.firestore.Timestamp.fromMillis(now.toMillis() - 30 * 60 * 1000);
+  try {
+    const orphanSnapshot = await admin.firestore()
+      .collectionGroup("contentCalendar")
+      .where("status", "==", "processing")
+      .where("updatedAt", "<=", thirtyMinsAgo)
+      .get();
+
+    if (!orphanSnapshot.empty) {
+      console.warn(`[runScheduledPostProcessor] ⚠️ Found ${orphanSnapshot.size} orphaned "processing" posts — resetting to "approved"`);
+      const batch = admin.firestore().batch();
+      orphanSnapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          status: "approved",
+          errorMessage: "Reset from stuck processing state",
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      });
+      await batch.commit();
+    }
+  } catch (orphanErr: any) {
+    console.warn("[runScheduledPostProcessor] Orphan recovery skipped:", orphanErr.message);
+  }
+
   // Step 1: Perform Collection Group Query on contentCalendar
-  // CRITICAL: Query must match exactly: status == 'approved' AND scheduledDate <= now
+  // Query for approved posts due now, PLUS error posts with content that are overdue (auto-retry)
   const query = admin.firestore()
     .collectionGroup("contentCalendar")
     .where("status", "==", "approved") // Only approved posts
@@ -4779,6 +4791,32 @@ async function runScheduledPostProcessor(): Promise<{
       throw new Error(`Missing Firestore index for scheduled post query: ${queryError.message}`);
     }
     throw queryError;
+  }
+
+  // Also pick up "error" posts that have content and are overdue — auto-retry
+  let errorRetryDocs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
+  try {
+    const errorSnapshot = await admin.firestore()
+      .collectionGroup("contentCalendar")
+      .where("status", "==", "error")
+      .where("scheduledDate", "<=", now)
+      .get();
+    // Only retry if content was already generated
+    errorRetryDocs = errorSnapshot.docs.filter((doc) => !!doc.data().generatedContent);
+    if (errorRetryDocs.length > 0) {
+      console.log(`[runScheduledPostProcessor] Found ${errorRetryDocs.length} error posts with content to retry`);
+      // Reset them to approved so they get processed
+      const batch = admin.firestore().batch();
+      errorRetryDocs.forEach((doc) => {
+        batch.update(doc.ref, {
+          status: "approved",
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      });
+      await batch.commit();
+    }
+  } catch (retryErr: any) {
+    console.warn("[runScheduledPostProcessor] Error retry query skipped:", retryErr.message);
   }
 
   console.log(`[runScheduledPostProcessor] Found ${snapshot.size} due calendar entries to process`);
@@ -7060,7 +7098,8 @@ export const createSiteCallable = region.runWith({
       blogsGenerated: 0,
       status: "pending",
       isActive: true,
-      autoApproveBlogs: false,
+      autoApprove: true,
+      autoApproveBlogs: true,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
@@ -7130,6 +7169,51 @@ export const createSiteCallable = region.runWith({
 });
 
 /**
+ * Firestore Trigger: Auto-start campaign when a new site is created
+ * Fires when a new document is created in the "sites" collection.
+ * Waits briefly then calls the initial campaign generator automatically.
+ */
+export const onSiteCreated = functions
+  .region("australia-southeast1")
+  .runWith({timeoutSeconds: 540, memory: "1GB"})
+  .firestore.document("sites/{siteId}")
+  .onCreate(async (snap, context) => {
+    const siteId = context.params.siteId;
+    const siteData = snap.data();
+
+    console.log(`[onSiteCreated] New site created: ${siteId}, status: ${siteData?.status}`);
+
+    // Only auto-start if the site has platform credentials (WordPress or Shopline connected)
+    const hasWordPress = !!(siteData?.wordpressApiUrl && siteData?.wordpressUsername && siteData?.wordpressAppPassword);
+    const hasShopline = !!(siteData?.shoplineHandle && siteData?.shoplineAccessToken);
+
+    if (!hasWordPress && !hasShopline) {
+      console.log(`[onSiteCreated] Site ${siteId} has no publishing credentials yet — skipping auto-campaign.`);
+      return;
+    }
+
+    // Small delay to let any follow-up writes settle (e.g. Shopline OAuth storing the token)
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    try {
+      console.log(`[onSiteCreated] Auto-starting initial campaign for site ${siteId}...`);
+      const userId = siteData?.agencyId || siteData?.ownerId || siteData?.userId;
+      if (!userId) {
+        console.warn(`[onSiteCreated] No userId found for site ${siteId}, cannot auto-start campaign.`);
+        return;
+      }
+
+      // Reuse the same logic as generateInitialCampaignCallable
+      await runGenerateInitialCampaign(siteId, userId);
+
+      console.log(`[onSiteCreated] ✅ Initial campaign auto-started for site ${siteId}`);
+    } catch (error: any) {
+      console.error(`[onSiteCreated] ❌ Failed to auto-start campaign for site ${siteId}:`, error.message);
+      // Don't throw — we don't want to crash the trigger, the daily job will pick it up
+    }
+  });
+
+/**
  * Callable Function: Auto-Fill Calendar
  * Automatically generates and schedules content when calendar has gaps
  * Only runs if lastAutoGenerateTime was more than 60 minutes ago
@@ -7184,9 +7268,8 @@ export const autoFillCalendarCallable = region.runWith({
 
     console.log("[autoFillCalendarCallable] ✅ Updated lastAutoGenerateTime");
 
-    // Step 2: Get latest scheduled post to determine next date
+    // Step 2: Get latest scheduled post to determine next MWF date
     const calendarRef = siteRef.collection("contentCalendar");
-    const postingFrequency = siteData.postingFrequency || 1; // Default to 1 day if missing
     const autoApprove = siteData.autoApprove || false;
 
     // Query for the LATEST post (regardless of date - past or future)
@@ -7199,28 +7282,16 @@ export const autoFillCalendarCallable = region.runWith({
     let nextScheduledDate: admin.firestore.Timestamp;
 
     if (latestPostSnapshot.empty) {
-      // No posts exist - schedule for tomorrow at midnight
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0); // Force midnight (00:00:00)
-      nextScheduledDate = admin.firestore.Timestamp.fromDate(tomorrow);
-      console.log(`[autoFillCalendarCallable] No existing posts - scheduling for tomorrow at midnight: ${nextScheduledDate.toDate().toISOString()}`);
+      // No posts exist - use the next MWF after now
+      nextScheduledDate = admin.firestore.Timestamp.fromDate(getNextMWFDate());
+      console.log(`[autoFillCalendarCallable] No existing posts - next MWF: ${nextScheduledDate.toDate().toISOString()}`);
     } else {
-      // Posts exist - schedule after the latest one
+      // Posts exist - schedule after the latest one on the next MWF
       const latestPost = latestPostSnapshot.docs[0];
-      const latestDate = latestPost.data().scheduledDate as admin.firestore.Timestamp;
-      const lastDate = latestDate.toDate();
-
-      // Calculate next date: lastDate + postingFrequency days
-      const nextDate = new Date(lastDate);
-      // CRUCIAL: Reset to midnight first, then add days
-      nextDate.setHours(0, 0, 0, 0);
-      nextDate.setDate(nextDate.getDate() + postingFrequency);
-      // Ensure still at midnight after date change
-      nextDate.setHours(0, 0, 0, 0);
+      const latestDate = (latestPost.data().scheduledDate as admin.firestore.Timestamp).toDate();
+      const nextDate = getNextMWFDate(latestDate);
       nextScheduledDate = admin.firestore.Timestamp.fromDate(nextDate);
-
-      console.log(`[autoFillCalendarCallable] Latest post: ${lastDate.toISOString()}, Next post: ${nextScheduledDate.toDate().toISOString()} (${postingFrequency} days later at midnight)`);
+      console.log(`[autoFillCalendarCallable] Latest post: ${latestDate.toISOString()}, Next MWF: ${nextDate.toISOString()}`);
     }
 
     // Step 3: Get unused targeted keyword
@@ -7520,8 +7591,6 @@ async function runDailyContentAutomationProcessor(): Promise<{
         const siteRef = admin.firestore().collection("sites").doc(siteId);
         const calendarRef = siteRef.collection("contentCalendar");
 
-        // Get posting frequency (default to 1 day)
-        const postingFrequency = siteData.postingFrequency || 1;
         const autoApprove = siteData.autoApprove || false;
 
         // STEP 1: Buffer Enforcer - Maintain 12 planned topics
@@ -7538,27 +7607,18 @@ async function runDailyContentAutomationProcessor(): Promise<{
         let topicsPlannedForSite = 0;
 
         if (needed > 0) {
-          // Get latest post date (future or past)
+          // Find the anchor date to generate MWF slots from
           const latestPostQuery = calendarRef.orderBy("scheduledDate", "desc").limit(1);
           const latestPostSnapshot = await latestPostQuery.get();
 
-          let nextDate: Date;
+          let anchorDate: Date;
           if (latestPostSnapshot.empty) {
-            // No posts exist - start tomorrow at midnight
-            nextDate = new Date();
-            nextDate.setDate(nextDate.getDate() + 1);
-            nextDate.setHours(0, 0, 0, 0);
+            anchorDate = new Date();
           } else {
-            // Get latest post date and add frequency
-            const latestPost = latestPostSnapshot.docs[0];
-            const latestDate = latestPost.data().scheduledDate as admin.firestore.Timestamp;
-            nextDate = new Date(latestDate.toDate());
-            // CRITICAL: Reset to midnight first, then add days
-            nextDate.setHours(0, 0, 0, 0);
-            nextDate.setDate(nextDate.getDate() + postingFrequency);
-            // Ensure still at midnight after date change
-            nextDate.setHours(0, 0, 0, 0);
+            anchorDate = (latestPostSnapshot.docs[0].data().scheduledDate as admin.firestore.Timestamp).toDate();
           }
+
+          const mwfSlots = getNextMWFDates(needed, anchorDate);
 
           // Create needed posts
           for (let i = 0; i < needed; i++) {
@@ -7595,8 +7655,8 @@ async function runDailyContentAutomationProcessor(): Promise<{
               console.log(`[runDailyContentAutomationProcessor] Site ${siteId}: Generated topic: ${keyword} - ${title}`);
             }
 
-            // Create planned post
-            const scheduledDate = admin.firestore.Timestamp.fromDate(nextDate);
+            // Create planned post on next MWF slot
+            const scheduledDate = admin.firestore.Timestamp.fromDate(mwfSlots[i]);
             await calendarRef.add({
               status: "planned",
               scheduledDate: scheduledDate,
@@ -7609,11 +7669,6 @@ async function runDailyContentAutomationProcessor(): Promise<{
 
             topicsPlannedForSite++;
             stats.topicsPlanned++;
-
-            // Calculate next date for next iteration
-            nextDate = new Date(nextDate);
-            nextDate.setDate(nextDate.getDate() + postingFrequency);
-            nextDate.setHours(0, 0, 0, 0);
           }
 
           console.log(`[runDailyContentAutomationProcessor] Site ${siteId}: Planned ${topicsPlannedForSite} topics`);
@@ -7921,6 +7976,175 @@ export {
 } from "./notifications";
 
 /**
+ * Core logic for generating an initial SEO campaign for a new site.
+ * Used by both generateInitialCampaignCallable and the onSiteCreated trigger.
+ * @param {string} siteId - The site ID
+ * @param {string} userId - The owner's user ID (used to look up agencyId)
+ * @return {Promise<object>} Result summary
+ */
+async function runGenerateInitialCampaign(siteId: string, userId: string): Promise<{
+  success: boolean;
+  keywordsCount?: number;
+  blogPostsCount?: number;
+  firstBlogPostId?: string;
+  message?: string;
+  skipped?: boolean;
+}> {
+  console.log(`[runGenerateInitialCampaign] Starting for site: ${siteId}, userId: ${userId}`);
+
+  // Step 1: Get user's agency
+  const userRef = admin.firestore().collection("users").doc(userId);
+  const userDoc = await userRef.get();
+  if (!userDoc.exists) throw new Error(`User document not found: ${userId}`);
+
+  const userData = userDoc.data();
+  const agencyId = userData?.agencyId;
+  if (!agencyId) throw new Error(`User ${userId} does not have an agency`);
+
+  // Step 2: Get agency data
+  const agencyRef = admin.firestore().collection("agencies").doc(agencyId);
+  const agencyDoc = await agencyRef.get();
+  if (!agencyDoc.exists) throw new Error(`Agency not found: ${agencyId}`);
+
+  const agencyData = agencyDoc.data();
+  const niche = agencyData?.niche || "general";
+  const location = agencyData?.location || agencyData?.country || "";
+  const businessDescription = agencyData?.businessDescription || "";
+
+  console.log(`[runGenerateInitialCampaign] Agency: niche=${niche}, location=${location}`);
+
+  // Step 3: Get site data
+  const siteRef = admin.firestore().collection("sites").doc(siteId);
+  const siteDoc = await siteRef.get();
+  if (!siteDoc.exists) throw new Error(`Site not found: ${siteId}`);
+
+  const siteData = siteDoc.data();
+  if (!siteData) throw new Error("Site data is empty");
+
+  // Guard: skip if already generated
+  if (siteData.hasCampaign) {
+    console.log(`[runGenerateInitialCampaign] Campaign already generated for site ${siteId}`);
+    return {success: true, message: "Campaign already generated"};
+  }
+
+  const calendarCollectionRef = siteRef.collection("contentCalendar");
+  const existingEntries = await calendarCollectionRef.limit(1).get();
+  if (!existingEntries.empty) {
+    console.log(`[runGenerateInitialCampaign] Site ${siteId} already has calendar entries, skipping`);
+    return {success: true, message: "Site already has content calendar entries", skipped: true};
+  }
+
+  // Step 4: Generate 12 targeted keywords
+  const keywordPrompt = `Generate 12 targeted SEO keywords for a ${niche} business${location ? ` in ${location}` : ""}${businessDescription ? ` described as: ${businessDescription}` : ""}.
+
+Focus on:
+- High-value keywords relevant to this niche and location
+- Mix of short (2-4 words) and long-tail (5+ words) keywords
+- Question-based keywords ("how to", "what is", etc.)
+- Problem-solution keywords
+
+Return ONLY a valid JSON array of exactly 12 strings. Do not include any explanation or other text.`;
+
+  const keywordContent = await callGeminiAPI(keywordPrompt, 2000, true);
+  let keywords: string[] = [];
+  try {
+    keywords = JSON.parse(keywordContent);
+  } catch {
+    const jsonMatch = keywordContent.match(/\[[\s\S]*\]/);
+    if (jsonMatch) keywords = JSON.parse(jsonMatch[0]);
+  }
+  if (!keywords || keywords.length === 0) throw new Error("Failed to generate keywords");
+  console.log(`[runGenerateInitialCampaign] ✅ Generated ${keywords.length} keywords`);
+
+  // Step 5: Generate 12 blog post topics
+  const blogPostsPrompt = `Generate 12 comprehensive blog post topic ideas for a ${niche} business${location ? ` in ${location}` : ""}${businessDescription ? ` described as: ${businessDescription}` : ""}.
+
+Each blog post topic should be highly relevant, SEO-friendly, specific, and cover a variety of angles.
+
+Return ONLY a valid JSON array of exactly 12 objects:
+{"title": "Blog post title", "keyword": "Primary keyword", "description": "Brief description"}`;
+
+  const blogPostsContent = await callGeminiAPI(blogPostsPrompt, 4000, true);
+  let blogPostTopics: Array<{title: string; keyword: string; description: string}> = [];
+  try {
+    blogPostTopics = JSON.parse(blogPostsContent);
+  } catch {
+    const jsonMatch = blogPostsContent.match(/\[[\s\S]*\]/);
+    if (jsonMatch) blogPostTopics = JSON.parse(jsonMatch[0]);
+  }
+  if (!blogPostTopics || blogPostTopics.length === 0) throw new Error("Failed to generate blog post topics");
+  console.log(`[runGenerateInitialCampaign] ✅ Generated ${blogPostTopics.length} blog post topics`);
+
+  // Step 6: Save keywords to site
+  await siteRef.update({
+    targetedKeywords: keywords,
+    primaryKeywords: keywords,
+    hasCampaign: true,
+    campaignStatus: "completed",
+    status: "active",
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  // Step 7: Create 12 calendar entries
+  // First post is scheduled NOW (within 1 hour) so it goes live immediately.
+  // Posts 2–12 are scheduled on the next 11 Mon/Wed/Fri slots at 02:00 UTC.
+  const firstPostDate = new Date(); // publish immediately
+  const mwfSchedule = getNextMWFDates(11); // 11 future MWF slots
+
+  const blogPostPromises = blogPostTopics.map(async (topic, index) => {
+    const scheduledDate = index === 0 ? firstPostDate : mwfSchedule[index - 1];
+
+    const docRef = await calendarCollectionRef.add({
+      blogTopic: topic.title,
+      keyword: topic.keyword,
+      blogDescription: topic.description,
+      imagePrompt: `Professional illustration representing ${topic.keyword} for ${niche} business`,
+      status: index === 0 ? "pending" : "scheduled",
+      scheduledDate: admin.firestore.Timestamp.fromDate(scheduledDate),
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      isPillar: false,
+      childClusterIds: [],
+    });
+    return {id: docRef.id, ...topic};
+  });
+
+  const createdBlogPosts = await Promise.all(blogPostPromises);
+  console.log(`[runGenerateInitialCampaign] ✅ Created ${createdBlogPosts.length} calendar entries`);
+
+  // Step 8: Generate and approve content for the first blog post
+  const firstPost = createdBlogPosts[0];
+  try {
+    const contentResult = await generateBlogContent({
+      keyword: firstPost.keyword,
+      blogTopic: firstPost.title,
+      blogDescription: firstPost.description,
+      imagePrompt: `Professional illustration representing ${firstPost.keyword} for ${niche} business`,
+      siteId,
+      calendarId: firstPost.id,
+    });
+    await calendarCollectionRef.doc(firstPost.id).update({
+      generatedContent: contentResult.htmlContent,
+      blogTitle: contentResult.blogTitle,
+      blogDescription: contentResult.blogDescription,
+      status: "approved",
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    console.log("[runGenerateInitialCampaign] First post content generated and approved");
+  } catch (contentError: any) {
+    console.warn(`[runGenerateInitialCampaign] ⚠️ First post content generation failed: ${contentError.message}`);
+    // Non-fatal — daily automation will retry
+  }
+
+  return {
+    success: true,
+    keywordsCount: keywords.length,
+    blogPostsCount: blogPostTopics.length,
+    firstBlogPostId: createdBlogPosts[0].id,
+  };
+}
+
+/**
  * Callable Function: Generate Initial Campaign
  * Auto-generates SEO keywords and pillar topics for a new user's first site
  * Generates content for the first blog immediately
@@ -7947,241 +8171,7 @@ export const generateInitialCampaignCallable = region.runWith({
   }
 
   try {
-    console.log(`[generateInitialCampaignCallable] Starting for site: ${siteId}`);
-
-    // Step 1: Get user's agency
-    const userRef = admin.firestore().collection("users").doc(userId);
-    const userDoc = await userRef.get();
-
-    if (!userDoc.exists) {
-      throw new functions.https.HttpsError(
-        "not-found",
-        "User document not found"
-      );
-    }
-
-    const userData = userDoc.data();
-    const agencyId = userData?.agencyId;
-
-    if (!agencyId) {
-      throw new functions.https.HttpsError(
-        "failed-precondition",
-        "User does not have an agency"
-      );
-    }
-
-    // Step 2: Get agency data
-    const agencyRef = admin.firestore().collection("agencies").doc(agencyId);
-    const agencyDoc = await agencyRef.get();
-
-    if (!agencyDoc.exists) {
-      throw new functions.https.HttpsError(
-        "not-found",
-        "Agency not found"
-      );
-    }
-
-    const agencyData = agencyDoc.data();
-    const niche = agencyData?.niche || "general";
-    const location = agencyData?.location || agencyData?.country || "";
-    const businessDescription = agencyData?.businessDescription || "";
-
-    console.log(`[generateInitialCampaignCallable] Agency data: niche=${niche}, location=${location}`);
-
-    // Step 3: Get site data
-    const siteRef = admin.firestore().collection("sites").doc(siteId);
-    const siteDoc = await siteRef.get();
-
-    if (!siteDoc.exists) {
-      throw new functions.https.HttpsError(
-        "not-found",
-        "Site not found"
-      );
-    }
-
-    const siteData = siteDoc.data();
-    if (!siteData) {
-      throw new functions.https.HttpsError(
-        "not-found",
-        "Site data is empty"
-      );
-    }
-
-    // Check if campaign already generated
-    if (siteData.hasCampaign) {
-      console.log(`[generateInitialCampaignCallable] Campaign already generated for site ${siteId}`);
-      return {success: true, message: "Campaign already generated"};
-    }
-
-    // Check if site has existing content calendar entries (topic posts)
-    const calendarCollectionRef = siteRef.collection("contentCalendar");
-    const existingEntries = await calendarCollectionRef.limit(1).get();
-
-    if (!existingEntries.empty) {
-      console.log(`[generateInitialCampaignCallable] Site ${siteId} already has content calendar entries, skipping campaign generation`);
-      return {
-        success: true,
-        message: "Site already has content calendar entries",
-        skipped: true,
-      };
-    }
-
-    // Step 4: Generate 12 targeted keywords
-    console.log("[generateInitialCampaignCallable] Generating keywords...");
-    const keywordPrompt = `Generate 12 targeted SEO keywords for a ${niche} business${location ? ` in ${location}` : ""}${businessDescription ? ` described as: ${businessDescription}` : ""}.
-
-Focus on:
-- High-value keywords relevant to this niche and location
-- Mix of short (2-4 words) and long-tail (5+ words) keywords
-- Question-based keywords ("how to", "what is", etc.)
-- Problem-solution keywords
-
-Return ONLY a valid JSON array of exactly 12 strings. Do not include any explanation or other text.`;
-
-    const keywordContent = await callGeminiAPI(keywordPrompt, 2000);
-    const keywordJsonMatch = keywordContent.match(/\[[\s\S]*\]/);
-
-    if (!keywordJsonMatch) {
-      throw new Error("Invalid keyword response format from AI");
-    }
-
-    const keywords = JSON.parse(keywordJsonMatch[0]) as string[];
-    if (!keywords || keywords.length === 0) {
-      throw new Error("Failed to generate keywords");
-    }
-
-    console.log(`[generateInitialCampaignCallable] ✅ Generated ${keywords.length} keywords`);
-
-    // Step 5: Generate 12 Blog Post Topics (to stay ahead)
-    console.log("[generateInitialCampaignCallable] Generating 12 blog post topics...");
-    const blogPostsPrompt = `Generate 12 comprehensive blog post topic ideas for a ${niche} business${location ? ` in ${location}` : ""}${businessDescription ? ` described as: ${businessDescription}` : ""}.
-
-Each blog post topic should be:
-- Highly relevant to the business niche
-- SEO-friendly and valuable to potential customers
-- Specific and actionable
-- Cover a variety of angles (how-to guides, tips, comparisons, case studies, etc.)
-
-Return ONLY a valid JSON array of exactly 12 objects, each with:
-{
-  "title": "Blog post title",
-  "keyword": "Primary keyword for this post",
-  "description": "Brief description of what this post covers"
-}
-
-Do not include any explanation or other text.`;
-
-    const blogPostsContent = await callGeminiAPI(blogPostsPrompt, 4000);
-    const blogPostsJsonMatch = blogPostsContent.match(/\[[\s\S]*\]/);
-
-    if (!blogPostsJsonMatch) {
-      throw new Error("Invalid blog post topics response format from AI");
-    }
-
-    const blogPostTopics = JSON.parse(blogPostsJsonMatch[0]) as Array<{
-      title: string;
-      keyword: string;
-      description: string;
-    }>;
-
-    if (!blogPostTopics || blogPostTopics.length === 0) {
-      throw new Error("Failed to generate blog post topics");
-    }
-
-    if (blogPostTopics.length < 12) {
-      console.warn(`[generateInitialCampaignCallable] ⚠️ Only generated ${blogPostTopics.length} topics, expected 12`);
-    }
-
-    console.log(`[generateInitialCampaignCallable] ✅ Generated ${blogPostTopics.length} blog post topics`);
-
-    // Step 6: Save keywords to site and mark campaign as completed
-    await siteRef.update({
-      targetedKeywords: keywords,
-      primaryKeywords: keywords, // Also save to legacy field
-      hasCampaign: true,
-      campaignStatus: "completed", // Set status for notification trigger
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    console.log("[generateInitialCampaignCallable] ✅ Saved keywords to site");
-
-    // Step 7: Get site's blogsPerWeek setting to calculate posting frequency
-    const blogsPerWeek = siteData?.blogsPerWeek || 3; // Default to 3 per week
-    const daysInterval = Math.floor(7 / blogsPerWeek); // Days between posts
-
-    // Step 8: Create 12 blog post topic documents in contentCalendar
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() + 1); // Start from tomorrow
-    startDate.setHours(0, 0, 0, 0); // Set to midnight (12:00 AM)
-
-    const blogPostPromises = blogPostTopics.map(async (topic, index) => {
-      const scheduledDate = new Date(startDate);
-      scheduledDate.setDate(startDate.getDate() + (index * daysInterval));
-      scheduledDate.setHours(0, 0, 0, 0); // Ensure midnight (12:00 AM)
-
-      // Skip weekends - move to Monday if it falls on weekend
-      if (scheduledDate.getDay() === 0) { // Sunday
-        scheduledDate.setDate(scheduledDate.getDate() + 1); // Move to Monday
-        scheduledDate.setHours(0, 0, 0, 0); // Ensure midnight after date change
-      } else if (scheduledDate.getDay() === 6) { // Saturday
-        scheduledDate.setDate(scheduledDate.getDate() + 2); // Move to Monday
-        scheduledDate.setHours(0, 0, 0, 0); // Ensure midnight after date change
-      }
-
-      const blogPostDocRef = await calendarCollectionRef.add({
-        blogTopic: topic.title,
-        keyword: topic.keyword,
-        blogDescription: topic.description,
-        imagePrompt: `Professional illustration representing ${topic.keyword} for ${niche} business`,
-        status: index === 0 ? "pending" : "scheduled", // First one will be generated immediately
-        scheduledDate: admin.firestore.Timestamp.fromDate(scheduledDate),
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        isPillar: false, // These are regular blog posts, not pillars
-        childClusterIds: [],
-      });
-
-      return {id: blogPostDocRef.id, ...topic};
-    });
-
-    const createdBlogPosts = await Promise.all(blogPostPromises);
-    console.log(`[generateInitialCampaignCallable] ✅ Created ${createdBlogPosts.length} blog post documents`);
-
-    // Step 9: Generate content for the FIRST blog post immediately
-    const firstBlogPost = createdBlogPosts[0];
-    console.log(`[generateInitialCampaignCallable] Generating content for first blog post: ${firstBlogPost.title}`);
-
-    try {
-      const contentResult = await generateBlogContent({
-        keyword: firstBlogPost.keyword,
-        blogTopic: firstBlogPost.title,
-        blogDescription: firstBlogPost.description,
-        imagePrompt: `Professional illustration representing ${firstBlogPost.keyword} for ${niche} business`,
-        siteId: siteId,
-        calendarId: firstBlogPost.id,
-      });
-
-      // Update the calendar entry with generated content
-      await calendarCollectionRef.doc(firstBlogPost.id).update({
-        generatedContent: contentResult.htmlContent,
-        blogTitle: contentResult.blogTitle,
-        blogDescription: contentResult.blogDescription,
-        status: "approved", // Mark as approved so it shows as ready
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-
-      console.log("[generateInitialCampaignCallable] ✅ Generated content for first blog post");
-    } catch (contentError: any) {
-      console.error("[generateInitialCampaignCallable] ⚠️ Failed to generate content for first blog post:", contentError);
-      // Don't fail the whole function - the blog post is still created
-    }
-
-    return {
-      success: true,
-      keywordsCount: keywords.length,
-      blogPostsCount: blogPostTopics.length,
-      firstBlogPostId: createdBlogPosts[0].id,
-    };
+    return await runGenerateInitialCampaign(siteId, userId);
   } catch (error: any) {
     console.error("[generateInitialCampaignCallable] ❌ Error:", error);
     if (error instanceof functions.https.HttpsError) {
@@ -8272,8 +8262,6 @@ export const ensure12UnpublishedPostsCallable = region.runWith({
     const autoApproveBlogs = siteData.autoApproveBlogs === true;
 
     // Step 4: Get site settings
-    const blogsPerWeek = siteData.blogsPerWeek || 3;
-    const daysInterval = Math.floor(7 / blogsPerWeek);
     const niche = siteData.industry || "general";
     const agencyId = siteData.agencyId;
 
@@ -8290,32 +8278,20 @@ export const ensure12UnpublishedPostsCallable = region.runWith({
       }
     }
 
-    // Step 5: Get latest scheduled date (or start from tomorrow)
-    let latestDate: Date;
+    // Step 5: Get anchor date to generate MWF slots from
+    let anchorDate12: Date;
     if (unpublishedEntries.length > 0) {
-      // Find the latest scheduled date
       const dates = unpublishedEntries
         .map((doc) => {
-          const data = doc.data();
-          const scheduledDate = data.scheduledDate;
-          return scheduledDate ? scheduledDate.toDate() : null;
+          const sd = doc.data().scheduledDate;
+          return sd ? (sd as admin.firestore.Timestamp).toDate() : null;
         })
-        .filter((date): date is Date => date !== null);
-
-      if (dates.length > 0) {
-        latestDate = new Date(Math.max(...dates.map((d) => d.getTime())));
-        // CRITICAL: Reset to midnight even if existing date had a different time
-        latestDate.setHours(0, 0, 0, 0);
-      } else {
-        latestDate = new Date();
-        latestDate.setDate(latestDate.getDate() + 1);
-        latestDate.setHours(0, 0, 0, 0);
-      }
+        .filter((d): d is Date => d !== null);
+      anchorDate12 = dates.length > 0 ? new Date(Math.max(...dates.map((d) => d.getTime()))) : new Date();
     } else {
-      latestDate = new Date();
-      latestDate.setDate(latestDate.getDate() + 1);
-      latestDate.setHours(0, 0, 0, 0);
+      anchorDate12 = new Date();
     }
+    const mwfSlots12 = getNextMWFDates(needed, anchorDate12);
 
     // Step 6: Get targeted keywords
     const targetedKeywords = (siteData.targetedKeywords || []) as string[];
@@ -8330,19 +8306,7 @@ export const ensure12UnpublishedPostsCallable = region.runWith({
     // Step 7: Generate new posts
     const createdPosts: string[] = [];
     for (let i = 0; i < needed; i++) {
-      // Calculate next scheduled date
-      const scheduledDate = new Date(latestDate);
-      scheduledDate.setDate(latestDate.getDate() + ((i + 1) * daysInterval));
-      scheduledDate.setHours(0, 0, 0, 0); // Ensure midnight
-
-      // Skip weekends
-      if (scheduledDate.getDay() === 0) {
-        scheduledDate.setDate(scheduledDate.getDate() + 1); // Move to Monday
-        scheduledDate.setHours(0, 0, 0, 0);
-      } else if (scheduledDate.getDay() === 6) {
-        scheduledDate.setDate(scheduledDate.getDate() + 2); // Move to Monday
-        scheduledDate.setHours(0, 0, 0, 0);
-      }
+      const scheduledDate = mwfSlots12[i];
 
       // Get or generate keyword
       let keyword: string;

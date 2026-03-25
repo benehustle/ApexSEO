@@ -21,4 +21,6 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 // Functions are deployed to australia-southeast1 region
 export const functions = getFunctions(app, 'australia-southeast1');
+// Shopline functions are in asia-southeast1 to avoid GCP Melbourne geo-block
+export const functionsAsia = getFunctions(app, 'asia-southeast1');
 export default app;
